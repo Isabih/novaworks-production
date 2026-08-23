@@ -1,0 +1,18 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Activity, Database, Mail, Server, ShieldCheck, MessageSquare, RefreshCw, IdCard, Sparkles } from "lucide-react";
+import { DashboardShell, Panel } from "@/components/dashboard/DashboardShell";
+import { RoleGate } from "@/components/dashboard/RoleGate";
+import { getSystemHealth, listFeatureFlags, setFeatureFlag } from "@/lib/system-health.functions";
+import { toast } from "sonner";
+
+export const Route=createFileRoute("/_authenticated/dashboard/it/system-health")({head:()=>({meta:[{title:"System Health — NOVAWORKS"}]}),component:()=> <RoleGate allow={["it"]} exclusive><SystemHealth/></RoleGate>});
+
+function ServiceRow({icon:Icon,label,item}:{icon:any;label:string;item?:{ok:boolean;detail:string}}){return <div className="flex items-center justify-between gap-4 py-3 border-b border-noir/5 last:border-0"><div className="flex gap-3"><Icon className="h-4 w-4 mt-0.5 text-noir/50"/><div><div className="text-sm font-medium">{label}</div><div className="text-xs text-noir/50">{item?.detail||"Checking…"}</div></div></div><span className={`text-xs font-medium ${item?.ok?"text-emerald-600":"text-rose-600"}`}>{item?item.ok?"● Operational":"● Attention":"○ Checking"}</span></div>}
+function SystemHealth(){const getHealth=useServerFn(getSystemHealth),getFlags=useServerFn(listFeatureFlags),setFlag=useServerFn(setFeatureFlag);const [health,setHealth]=useState<any>(null),[flags,setFlags]=useState<any[]>([]),[busy,setBusy]=useState(false);
+ const refresh=async()=>{setBusy(true);try{const [h,f]=await Promise.all([getHealth(),getFlags()]);setHealth(h);setFlags(f)}catch(e:any){toast.error(e.message||"Health check failed")}finally{setBusy(false)}};useEffect(()=>{void refresh()},[]);
+ const toggle=async(f:any)=>{try{await setFlag({data:{key:f.feature_key,enabled:!Boolean(f.enabled)}});await refresh();toast.success(`${f.label} ${f.enabled?"disabled":"enabled"}`)}catch(e:any){toast.error(e.message||"Could not update")}};
+ return <DashboardShell title="System Health & Controls" subtitle="IT-only service checks and feature switches" role="it" actions={[{label:busy?"Checking…":"Refresh",icon:RefreshCw,onClick:refresh}]}>
+ <div className="grid lg:grid-cols-2 gap-6"><Panel title="Core services" subtitle="Live configuration and connectivity checks"><ServiceRow icon={Database} label="MySQL database" item={health?.mysql}/><ServiceRow icon={ShieldCheck} label="Authentication" item={health?.authentication}/><ServiceRow icon={Sparkles} label="NOVA AI / OpenAI" item={health?.ai}/><ServiceRow icon={Mail} label="Resend email" item={health?.email}/><ServiceRow icon={MessageSquare} label="SMS Hub" item={health?.sms}/><ServiceRow icon={IdCard} label="NIDA verification" item={health?.nida}/><ServiceRow icon={Server} label="Cloudflare R2 media" item={health?.media}/></Panel>
+ <Panel title="Feature controls" subtitle="Turn services on or off. Disabled features are hidden for non-IT roles and rejected by protected business routes."><div className="space-y-2">{flags.map(f=><div key={f.feature_key} className="flex items-center justify-between rounded-xl border border-noir/10 px-4 py-3"><div><div className="text-sm font-medium">{f.label}</div><div className="text-[11px] text-noir/45">{f.feature_key}</div></div><button onClick={()=>toggle(f)} className={`relative h-7 w-12 rounded-full transition ${f.enabled?"bg-emerald-500":"bg-noir/15"}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${f.enabled?"left-6":"left-1"}`}/></button></div>)}</div></Panel></div></DashboardShell>}

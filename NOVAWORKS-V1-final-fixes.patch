@@ -1,0 +1,320 @@
+diff -ruN nwfinal/novaworks/src/components/site/SiteHeader.tsx nwpatch/src/components/site/SiteHeader.tsx
+--- a/src/components/site/SiteHeader.tsx	2026-08-23 17:43:50.000000000 +0000
++++ b/src/components/site/SiteHeader.tsx	2026-08-23 21:42:18.067635120 +0000
+@@ -1,6 +1,6 @@
+ import { Link } from "@tanstack/react-router";
+ import { useState, useEffect } from "react";
+-import { Menu, X, Search, ChevronDown, Home, Building2, Castle, Building, Briefcase, MapPin, Square, Store, User as UserIcon, LayoutDashboard, LogOut, Mail, Map as MapIcon, Heart, TrendingUp, Sparkles, Sun, Moon } from "lucide-react";
++import { Menu, X, Search, ChevronDown, Home, Building2, Castle, Building, Briefcase, MapPin, Square, Store, User as UserIcon, LayoutDashboard, LogOut, Mail, Map as MapIcon, Heart, TrendingUp, Sparkles, Sun, Moon, Image as ImageIcon } from "lucide-react";
+ import logo from "@/assets/novaworks-logo.png";
+ import { CATEGORY_META, type PropertyCategory } from "@/lib/properties";
+ import { useAuth, dashboardPathFor } from "@/lib/use-auth";
+@@ -32,6 +32,7 @@
+   const [userMenu, setUserMenu] = useState(false);
+   const [scrolled, setScrolled] = useState(false);
+   const [theme, setTheme] = useState<"light" | "dark">("light");
++  const [clearHero, setClearHero] = useState(false);
+   useEffect(() => {
+     const stored = (typeof window !== "undefined" && localStorage.getItem("theme")) as "light" | "dark" | null;
+     const next = stored === "dark" ? "dark" : "light";
+@@ -45,6 +46,20 @@
+     try { localStorage.setItem("theme", next); } catch {}
+   };
+   useEffect(() => {
++    try {
++      const enabled = localStorage.getItem("nw_clear_hero") === "1";
++      setClearHero(enabled);
++      document.documentElement.dataset.heroClear = enabled ? "1" : "0";
++    } catch {}
++  }, []);
++  const toggleHeroClarity = () => {
++    const next = !clearHero;
++    setClearHero(next);
++    document.documentElement.dataset.heroClear = next ? "1" : "0";
++    try { localStorage.setItem("nw_clear_hero", next ? "1" : "0"); } catch {}
++    window.dispatchEvent(new CustomEvent("novaworks:hero-clear", { detail: next }));
++  };
++  useEffect(() => {
+     const onScroll = () => setScrolled(window.scrollY > 80);
+     onScroll();
+     window.addEventListener("scroll", onScroll, { passive: true });
+@@ -149,6 +164,14 @@
+             <Search className="w-4 h-4" />
+           </button>
+           <button
++            onClick={toggleHeroClarity}
++            className={`w-9 h-9 rounded-full inline-flex items-center justify-center transition-colors ${clearHero ? "bg-gold text-noir-deep" : "text-white/80 hover:text-white hover:bg-white/10"}`}
++            aria-label="Toggle clear hero image"
++            title={clearHero ? "Restore cinematic hero overlay" : "Show hero image without overlay"}
++          >
++            <ImageIcon className="w-4 h-4" />
++          </button>
++          <button
+             onClick={toggleTheme}
+             className="w-9 h-9 rounded-full text-white/80 hover:text-white hover:bg-white/10 inline-flex items-center justify-center transition-colors"
+             aria-label="Toggle theme"
+diff -ruN nwfinal/novaworks/src/lib/r2-upload.ts nwpatch/src/lib/r2-upload.ts
+--- a/src/lib/r2-upload.ts	2026-08-23 17:43:50.000000000 +0000
++++ b/src/lib/r2-upload.ts	2026-08-23 21:42:17.662361102 +0000
+@@ -1,7 +1,13 @@
++import { createClientOnlyFn } from "@tanstack/react-start";
+ import { signR2Upload } from "./r2.functions";
+-import { optimizeImageFile } from "./image-optimize.client";
++
+ export type UploadResult={url:string;path:string;provider:"r2"};
+ 
++const optimizeImageForUpload = createClientOnlyFn(async (file: File) => {
++  const { optimizeImageFile } = await import("./image-optimize.client");
++  return optimizeImageFile(file,{maxWidth:2400,maxHeight:2000,quality:.80});
++});
++
+ export async function uploadPropertyMedia(userId:string,file:File,subdir:string,onProgress?:(pct:number)=>void):Promise<UploadResult>{
+   if(file.size>20*1024*1024)throw new Error("Image/file is too large (20 MB maximum)");
+   const allowed=/^(image\/(jpeg|png|webp|avif)|application\/pdf|video\/)/i;
+@@ -9,7 +15,7 @@
+   let outgoing=file;
+   if(file.type.startsWith("image/")){
+     onProgress?.(2);
+-    try{outgoing=await optimizeImageFile(file,{maxWidth:2400,maxHeight:2000,quality:.80})}catch{outgoing=file}
++    try{outgoing=(await optimizeImageForUpload(file))??file}catch{outgoing=file}
+   }
+   const ext=(outgoing.name.split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'');
+   const key=`properties/${userId}/${subdir}/${crypto.randomUUID()}.${ext}`;
+diff -ruN nwfinal/novaworks/src/routes/_authenticated/dashboard.admin.reports.tsx nwpatch/src/routes/_authenticated/dashboard.admin.reports.tsx
+--- a/src/routes/_authenticated/dashboard.admin.reports.tsx	2026-08-23 20:19:02.000000000 +0000
++++ b/src/routes/_authenticated/dashboard.admin.reports.tsx	2026-08-23 21:42:17.522134578 +0000
+@@ -8,5 +8,12 @@
+ import { useAuth } from "@/lib/use-auth";
+ import { getAdminReport } from "@/lib/reports.functions";
+ export const Route=createFileRoute("/_authenticated/dashboard/admin/reports")({component:()=> <RoleGate allow={["it","admin"]}><Page/></RoleGate>});
++
++const displayDate=(value:any)=>{
++  if(value==null||value==="")return "—";
++  const d=value instanceof Date?value:new Date(value);
++  return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString(undefined,{year:"numeric",month:"short",day:"2-digit"});
++};
++
+ const csv=(rows:any[],name:string)=>{if(!rows.length)return;const keys=Object.keys(rows[0]);const esc=(v:any)=>`"${String(v??"").replaceAll('"','""')}"`;const text=[keys.join(','),...rows.map(r=>keys.map(k=>esc(r[k])).join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=name;a.click();URL.revokeObjectURL(a.href)};
+-function Page(){const {roles}=useAuth(),shell=shellForStaff(roles),fn=useServerFn(getAdminReport);const [from,setFrom]=useState(""),[to,setTo]=useState(""),[property,setProperty]=useState(""),[d,setD]=useState<any>({summary:[],bookings:[],ledger:[],properties:[]});const load=()=>fn({data:{from:from||undefined,to:to||undefined,property_id:property||undefined}}).then(setD);useEffect(()=>{load()},[]);const totalBookings=d.bookings.length,confirmed=d.bookings.filter((b:any)=>b.status==='confirmed').length;return <DashboardShell title="Reports & Export" subtitle="Filter operational and financial activity, inspect money flow and export CSV" role={shell.role} nav={shell.nav}><Panel title="Report filters" action={<button onClick={load} className="inline-flex gap-2 rounded-lg bg-noir-deep text-white px-4 py-2 text-sm"><Filter className="h-4 w-4"/>Apply</button>}><div className="grid md:grid-cols-3 gap-3"><input type="date" className="input-luxe" value={from} onChange={e=>setFrom(e.target.value)}/><input type="date" className="input-luxe" value={to} onChange={e=>setTo(e.target.value)}/><select className="input-luxe" value={property} onChange={e=>setProperty(e.target.value)}><option value="">All properties</option>{d.properties.map((p:any)=><option key={p.id} value={p.id}>{p.title}</option>)}</select></div></Panel><div className="grid md:grid-cols-4 gap-4 mt-5"><StatCard icon={CalendarCheck} label="Bookings" value={String(totalBookings)}/><StatCard icon={Building2} label="Confirmed" value={String(confirmed)}/><StatCard icon={DollarSign} label="Currencies" value={String(d.summary.length)}/><StatCard icon={Wrench} label="Money entries" value={String(d.ledger.length)}/></div><div className="grid xl:grid-cols-2 gap-6 mt-6"><Panel title="Money flow" subtitle="Gross income, NOVAWORKS commission, maintenance and owner net" action={<button onClick={()=>csv(d.ledger,'novaworks-money-flow.csv')} className="text-xs inline-flex gap-1"><Download className="h-4 w-4"/>Export</button>}>{d.summary.map((s:any)=><div key={s.currency} className="rounded-xl border p-4 mb-3 grid grid-cols-2 gap-3 text-sm"><b className="col-span-2">{s.currency}</b><div>Gross<br/><strong>{Number(s.gross||0).toLocaleString()}</strong></div><div>NOVAWORKS profit / commission<br/><strong className="text-emerald-700">{Number(s.commission||0).toLocaleString()}</strong></div><div>Maintenance<br/><strong>{Number(s.maintenance||0).toLocaleString()}</strong></div><div>Owner net<br/><strong>{Number(s.owner_net||0).toLocaleString()}</strong></div></div>)}</Panel><Panel title="Bookings" action={<button onClick={()=>csv(d.bookings,'novaworks-bookings.csv')} className="text-xs inline-flex gap-1"><Download className="h-4 w-4"/>Export</button>}><div className="max-h-[420px] overflow-auto">{d.bookings.map((b:any)=><div key={b.id} className="py-3 border-b text-sm flex justify-between gap-4"><div><b>{b.property_title}</b><div className="text-xs text-noir/50">{b.customer} · {b.unit_code||'Property'} · {b.check_in} → {b.check_out}</div></div><div className="text-right">{b.currency} {Number(b.amount).toLocaleString()}<div className="text-xs">{b.status}</div></div></div>)}</div></Panel></div></DashboardShell>}
++function Page(){const {roles}=useAuth(),shell=shellForStaff(roles),fn=useServerFn(getAdminReport);const [from,setFrom]=useState(""),[to,setTo]=useState(""),[property,setProperty]=useState(""),[d,setD]=useState<any>({summary:[],bookings:[],ledger:[],properties:[]});const load=()=>fn({data:{from:from||undefined,to:to||undefined,property_id:property||undefined}}).then(setD);useEffect(()=>{load()},[]);const totalBookings=d.bookings.length,confirmed=d.bookings.filter((b:any)=>b.status==='confirmed').length;return <DashboardShell title="Reports & Export" subtitle="Filter operational and financial activity, inspect money flow and export CSV" role={shell.role} nav={shell.nav}><Panel title="Report filters" action={<button onClick={load} className="inline-flex gap-2 rounded-lg bg-noir-deep text-white px-4 py-2 text-sm"><Filter className="h-4 w-4"/>Apply</button>}><div className="grid md:grid-cols-3 gap-3"><input type="date" className="input-luxe" value={from} onChange={e=>setFrom(e.target.value)}/><input type="date" className="input-luxe" value={to} onChange={e=>setTo(e.target.value)}/><select className="input-luxe" value={property} onChange={e=>setProperty(e.target.value)}><option value="">All properties</option>{d.properties.map((p:any)=><option key={p.id} value={p.id}>{p.title}</option>)}</select></div></Panel><div className="grid md:grid-cols-4 gap-4 mt-5"><StatCard icon={CalendarCheck} label="Bookings" value={String(totalBookings)}/><StatCard icon={Building2} label="Confirmed" value={String(confirmed)}/><StatCard icon={DollarSign} label="Currencies" value={String(d.summary.length)}/><StatCard icon={Wrench} label="Money entries" value={String(d.ledger.length)}/></div><div className="grid xl:grid-cols-2 gap-6 mt-6"><Panel title="Money flow" subtitle="Gross income, NOVAWORKS commission, maintenance and owner net" action={<button onClick={()=>csv(d.ledger,'novaworks-money-flow.csv')} className="text-xs inline-flex gap-1"><Download className="h-4 w-4"/>Export</button>}>{d.summary.map((s:any)=><div key={s.currency} className="rounded-xl border p-4 mb-3 grid grid-cols-2 gap-3 text-sm"><b className="col-span-2">{s.currency}</b><div>Gross<br/><strong>{Number(s.gross||0).toLocaleString()}</strong></div><div>NOVAWORKS profit / commission<br/><strong className="text-emerald-700">{Number(s.commission||0).toLocaleString()}</strong></div><div>Maintenance<br/><strong>{Number(s.maintenance||0).toLocaleString()}</strong></div><div>Owner net<br/><strong>{Number(s.owner_net||0).toLocaleString()}</strong></div></div>)}</Panel><Panel title="Bookings" action={<button onClick={()=>csv(d.bookings,'novaworks-bookings.csv')} className="text-xs inline-flex gap-1"><Download className="h-4 w-4"/>Export</button>}><div className="max-h-[420px] overflow-auto">{d.bookings.map((b:any)=><div key={b.id} className="py-3 border-b text-sm flex justify-between gap-4"><div><b>{b.property_title}</b><div className="text-xs text-noir/50">{b.customer} · {b.unit_code||'Property'} · {displayDate(b.check_in)} → {displayDate(b.check_out)}</div></div><div className="text-right">{b.currency} {Number(b.amount).toLocaleString()}<div className="text-xs">{b.status}</div></div></div>)}</div></Panel></div></DashboardShell>}
+diff -ruN nwfinal/novaworks/src/routes/_authenticated/dashboard.receptionist.index.tsx nwpatch/src/routes/_authenticated/dashboard.receptionist.index.tsx
+--- a/src/routes/_authenticated/dashboard.receptionist.index.tsx	1970-01-01 00:00:00.000000000 +0000
++++ b/src/routes/_authenticated/dashboard.receptionist.index.tsx	2026-08-23 21:42:16.971755250 +0000
+@@ -0,0 +1,84 @@
++import { createFileRoute, Link } from "@tanstack/react-router";
++import { useEffect, useMemo, useState } from "react";
++import { useServerFn } from "@tanstack/react-start";
++import { Users, Building2, ShieldCheck, UserPlus, CalendarCheck, Bell, ArrowRight, MessageSquare } from "lucide-react";
++import { DashboardShell, Panel, StatCard } from "@/components/dashboard/DashboardShell";
++import { RoleGate } from "@/components/dashboard/RoleGate";
++import { useAuth } from "@/lib/use-auth";
++import { RECEPTIONIST_NAV, shellForStaff } from "@/components/dashboard/nav-config";
++import { listCustomers } from "@/lib/customers.functions";
++import { listPendingStayExtensions } from "@/lib/stay-extension.functions";
++import { getNotifications } from "@/lib/dashboard-data.functions";
++
++export const Route=createFileRoute("/_authenticated/dashboard/receptionist/")({
++  head:()=>({meta:[{title:"Reception Dashboard — NOVAWORKS"}]}),
++  component:()=> <RoleGate allow={["receptionist","admin","it"]}><ReceptionDashboard/></RoleGate>
++});
++
++function ReceptionDashboard(){
++  const { roles } = useAuth();
++  const shell = roles.includes("it") || roles.includes("admin") ? shellForStaff(roles) : { role: "receptionist" as const, nav: RECEPTIONIST_NAV };
++  const list=useServerFn(listCustomers);
++  const extensionsFn=useServerFn(listPendingStayExtensions);
++  const notificationsFn=useServerFn(getNotifications);
++  const [customers,setCustomers]=useState<any[]>([]);
++  const [extensions,setExtensions]=useState<any[]>([]);
++  const [notifications,setNotifications]=useState<any[]>([]);
++
++  useEffect(()=>{Promise.all([list(),extensionsFn(),notificationsFn()]).then(([c,e,n])=>{
++    setCustomers((c??[]) as any[]); setExtensions((e??[]) as any[]); setNotifications((n??[]) as any[]);
++  }).catch(()=>{})},[]);
++
++  const stats=useMemo(()=>({
++    total:customers.length,
++    active:customers.filter(c=>["active","reserved","extension_requested"].includes(c.tenancy_status)).length,
++    verified:customers.filter(c=>c.nida_verified_at&&c.email_verified_at).length,
++    unread:notifications.filter(n=>!n.read_at).length,
++  }),[customers,notifications]);
++
++  return <DashboardShell
++    title="Reception Dashboard"
++    subtitle="Bookings, customer arrivals, verification and operational alerts at a glance"
++    role={shell.role}
++    nav={shell.nav}
++    actions={[{label:"Register Customer",to:"/dashboard/receptionist/register",icon:UserPlus,variant:"primary"}]}
++  >
++    <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
++      <StatCard icon={Users} label="Customers" value={String(stats.total)}/>
++      <StatCard icon={Building2} label="Active stays" value={String(stats.active)}/>
++      <StatCard icon={ShieldCheck} label="Verified identities" value={String(stats.verified)}/>
++      <StatCard icon={Bell} label="Unread alerts" value={String(stats.unread)}/>
++    </div>
++
++    <div className="mt-6 grid lg:grid-cols-2 gap-6">
++      <Panel title="Reception actions" subtitle="The daily workflow stays in one predictable place">
++        <div className="grid sm:grid-cols-2 gap-3">
++          <Action to="/dashboard/receptionist/register" icon={UserPlus} title="Register customer" text="NIDA/manual identity, email verification and apartment assignment."/>
++          <Action to="/dashboard/bookings" icon={CalendarCheck} title="Bookings & payments" text="Approve, decline and confirm customer payments."/>
++          <Action to="/dashboard/notifications" icon={Bell} title="Notifications" text="Open booking and email alerts that still need attention."/>
++          <Action to="/dashboard/messages" icon={MessageSquare} title="Mail & messages" text="Reply to customers and incoming NOVAWORKS email."/>
++        </div>
++      </Panel>
++      <Panel title="Needs attention" subtitle="Pending stay extensions and unread operational alerts">
++        <div className="space-y-3">
++          <div className="rounded-xl border border-noir/8 p-4 flex items-center justify-between">
++            <div><div className="text-sm font-semibold">Stay extensions</div><div className="text-xs text-noir/45">Requests waiting for a decision</div></div>
++            <div className="text-2xl font-semibold">{extensions.length}</div>
++          </div>
++          <div className="rounded-xl border border-noir/8 p-4 flex items-center justify-between">
++            <div><div className="text-sm font-semibold">Unread notifications</div><div className="text-xs text-noir/45">Bookings and email alerts</div></div>
++            <div className="text-2xl font-semibold">{stats.unread}</div>
++          </div>
++          <Link to="/dashboard/notifications" className="inline-flex items-center gap-2 text-sm font-semibold text-gold-dark">Review alerts <ArrowRight className="h-4 w-4"/></Link>
++        </div>
++      </Panel>
++    </div>
++  </DashboardShell>
++}
++
++function Action({to,icon:Icon,title,text}:{to:string;icon:any;title:string;text:string}){
++  return <Link to={to as any} className="group rounded-2xl border border-noir/8 bg-[#fbfaf7] p-4 transition hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-md">
++    <div className="h-10 w-10 rounded-xl bg-gold/12 text-gold-dark grid place-items-center"><Icon className="h-5 w-5"/></div>
++    <div className="mt-3 text-sm font-semibold">{title}</div><div className="mt-1 text-xs leading-5 text-noir/50">{text}</div>
++  </Link>
++}
+diff -ruN nwfinal/novaworks/src/routes/_authenticated/dashboard.receptionist.tsx nwpatch/src/routes/_authenticated/dashboard.receptionist.tsx
+--- a/src/routes/_authenticated/dashboard.receptionist.tsx	2026-08-23 20:17:36.000000000 +0000
++++ b/src/routes/_authenticated/dashboard.receptionist.tsx	2026-08-23 21:42:16.392490714 +0000
+@@ -1,84 +1,5 @@
+-import { createFileRoute, Link } from "@tanstack/react-router";
+-import { useEffect, useMemo, useState } from "react";
+-import { useServerFn } from "@tanstack/react-start";
+-import { Users, Building2, ShieldCheck, UserPlus, CalendarCheck, Bell, ArrowRight, MessageSquare } from "lucide-react";
+-import { DashboardShell, Panel, StatCard } from "@/components/dashboard/DashboardShell";
+-import { RoleGate } from "@/components/dashboard/RoleGate";
+-import { useAuth } from "@/lib/use-auth";
+-import { RECEPTIONIST_NAV, shellForStaff } from "@/components/dashboard/nav-config";
+-import { listCustomers } from "@/lib/customers.functions";
+-import { listPendingStayExtensions } from "@/lib/stay-extension.functions";
+-import { getNotifications } from "@/lib/dashboard-data.functions";
++import { createFileRoute, Outlet } from "@tanstack/react-router";
+ 
+-export const Route=createFileRoute("/_authenticated/dashboard/receptionist")({
+-  head:()=>({meta:[{title:"Reception Dashboard — NOVAWORKS"}]}),
+-  component:()=> <RoleGate allow={["receptionist","admin","it"]}><ReceptionDashboard/></RoleGate>
++export const Route = createFileRoute("/_authenticated/dashboard/receptionist")({
++  component: Outlet,
+ });
+-
+-function ReceptionDashboard(){
+-  const { roles } = useAuth();
+-  const shell = roles.includes("it") || roles.includes("admin") ? shellForStaff(roles) : { role: "receptionist" as const, nav: RECEPTIONIST_NAV };
+-  const list=useServerFn(listCustomers);
+-  const extensionsFn=useServerFn(listPendingStayExtensions);
+-  const notificationsFn=useServerFn(getNotifications);
+-  const [customers,setCustomers]=useState<any[]>([]);
+-  const [extensions,setExtensions]=useState<any[]>([]);
+-  const [notifications,setNotifications]=useState<any[]>([]);
+-
+-  useEffect(()=>{Promise.all([list(),extensionsFn(),notificationsFn()]).then(([c,e,n])=>{
+-    setCustomers((c??[]) as any[]); setExtensions((e??[]) as any[]); setNotifications((n??[]) as any[]);
+-  }).catch(()=>{})},[]);
+-
+-  const stats=useMemo(()=>({
+-    total:customers.length,
+-    active:customers.filter(c=>["active","reserved","extension_requested"].includes(c.tenancy_status)).length,
+-    verified:customers.filter(c=>c.nida_verified_at&&c.email_verified_at).length,
+-    unread:notifications.filter(n=>!n.read_at).length,
+-  }),[customers,notifications]);
+-
+-  return <DashboardShell
+-    title="Reception Dashboard"
+-    subtitle="Bookings, customer arrivals, verification and operational alerts at a glance"
+-    role={shell.role}
+-    nav={shell.nav}
+-    actions={[{label:"Register Customer",to:"/dashboard/receptionist/register",icon:UserPlus,variant:"primary"}]}
+-  >
+-    <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+-      <StatCard icon={Users} label="Customers" value={String(stats.total)}/>
+-      <StatCard icon={Building2} label="Active stays" value={String(stats.active)}/>
+-      <StatCard icon={ShieldCheck} label="Verified identities" value={String(stats.verified)}/>
+-      <StatCard icon={Bell} label="Unread alerts" value={String(stats.unread)}/>
+-    </div>
+-
+-    <div className="mt-6 grid lg:grid-cols-2 gap-6">
+-      <Panel title="Reception actions" subtitle="The daily workflow stays in one predictable place">
+-        <div className="grid sm:grid-cols-2 gap-3">
+-          <Action to="/dashboard/receptionist/register" icon={UserPlus} title="Register customer" text="NIDA/manual identity, email verification and apartment assignment."/>
+-          <Action to="/dashboard/bookings" icon={CalendarCheck} title="Bookings & payments" text="Approve, decline and confirm customer payments."/>
+-          <Action to="/dashboard/notifications" icon={Bell} title="Notifications" text="Open booking and email alerts that still need attention."/>
+-          <Action to="/dashboard/messages" icon={MessageSquare} title="Mail & messages" text="Reply to customers and incoming NOVAWORKS email."/>
+-        </div>
+-      </Panel>
+-      <Panel title="Needs attention" subtitle="Pending stay extensions and unread operational alerts">
+-        <div className="space-y-3">
+-          <div className="rounded-xl border border-noir/8 p-4 flex items-center justify-between">
+-            <div><div className="text-sm font-semibold">Stay extensions</div><div className="text-xs text-noir/45">Requests waiting for a decision</div></div>
+-            <div className="text-2xl font-semibold">{extensions.length}</div>
+-          </div>
+-          <div className="rounded-xl border border-noir/8 p-4 flex items-center justify-between">
+-            <div><div className="text-sm font-semibold">Unread notifications</div><div className="text-xs text-noir/45">Bookings and email alerts</div></div>
+-            <div className="text-2xl font-semibold">{stats.unread}</div>
+-          </div>
+-          <Link to="/dashboard/notifications" className="inline-flex items-center gap-2 text-sm font-semibold text-gold-dark">Review alerts <ArrowRight className="h-4 w-4"/></Link>
+-        </div>
+-      </Panel>
+-    </div>
+-  </DashboardShell>
+-}
+-
+-function Action({to,icon:Icon,title,text}:{to:string;icon:any;title:string;text:string}){
+-  return <Link to={to as any} className="group rounded-2xl border border-noir/8 bg-[#fbfaf7] p-4 transition hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-md">
+-    <div className="h-10 w-10 rounded-xl bg-gold/12 text-gold-dark grid place-items-center"><Icon className="h-5 w-5"/></div>
+-    <div className="mt-3 text-sm font-semibold">{title}</div><div className="mt-1 text-xs leading-5 text-noir/50">{text}</div>
+-  </Link>
+-}
+diff -ruN nwfinal/novaworks/src/routes/_site.index.tsx nwpatch/src/routes/_site.index.tsx
+--- a/src/routes/_site.index.tsx	2026-08-23 19:54:01.000000000 +0000
++++ b/src/routes/_site.index.tsx	2026-08-23 21:42:18.635156360 +0000
+@@ -78,6 +78,7 @@
+   const [paused, setPaused] = useState(false);
+   const [progress, setProgress] = useState(0);
+   const [loaded, setLoaded] = useState(false);
++  const [clearHero,setClearHero]=useState(false);
+   const { data: publicHome } = useQuery({
+     queryKey: ["public-home"],
+     queryFn: async () => {
+@@ -96,6 +97,13 @@
+   }, [HERO_SLIDES.length]);
+   useEffect(() => { setLoaded(true); }, []);
+   useEffect(() => {
++    const read=()=>setClearHero(document.documentElement.dataset.heroClear==="1" || localStorage.getItem("nw_clear_hero")==="1");
++    read();
++    const onToggle=(e:Event)=>setClearHero(Boolean((e as CustomEvent<boolean>).detail));
++    window.addEventListener("novaworks:hero-clear",onToggle as EventListener);
++    return()=>window.removeEventListener("novaworks:hero-clear",onToggle as EventListener);
++  },[]);
++  useEffect(() => {
+     if (paused) return;
+     const id = setInterval(() => {
+       setProgress((p) => (p >= 100 ? 100 : p + 0.5));
+@@ -169,11 +177,13 @@
+                 className="w-full h-full object-cover"
+               />
+             </div>
+-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
++            {!clearHero && <>
++              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
++              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
++            </>}
+           </div>
+         ))}
+-        {activeHeroVideo && (
++        {activeHeroVideo && !clearHero && (
+           <>
+             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />

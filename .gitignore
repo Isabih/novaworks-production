@@ -1,0 +1,15 @@
+node_modules/
+.output/
+dist/
+.vite/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+src/lib/*.rej
+*.rej
+
+*.orig
+*.tmp
+*.rej

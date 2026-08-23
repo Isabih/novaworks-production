@@ -1,0 +1,6 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireMysqlAuth } from "@/integrations/mysql/auth-middleware";
+import { rows,audit } from "./db-utils.server";
+import { queryRows } from "./mysql.server";
+export const getAppSettings=createServerFn({method:"GET"}).middleware([requireMysqlAuth]).handler(async()=>{return (await rows<any>(`SELECT * FROM app_settings WHERE id=1`))[0]??null});
+export const updateAppSettings=createServerFn({method:"POST"}).middleware([requireMysqlAuth]).validator((d:any)=>d).handler(async({data,context})=>{if(!context.roles.includes("it"))throw new Error("Only IT can change system communication settings");const allowed=["sender_name","from_email","reply_to","signature","brand_color","site_url","sr_confirm_subject","sr_confirm_body","sr_urgent_label","sr_normal_label","sr_reply_subject","sms_enabled","sms_mode"];const keys=Object.keys(data).filter(k=>allowed.includes(k));if(!keys.length)return{ok:true};await queryRows<any>(`UPDATE app_settings SET ${keys.map(k=>`${k}=?`).join(",")},updated_by=? WHERE id=1`,[...keys.map(k=>data[k]),context.userId]);await audit(context.userId,"SETTINGS_UPDATED","app_settings","1",null,data);return{ok:true}});
