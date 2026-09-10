@@ -14,7 +14,7 @@ import { VideoUrlInput, parseVideoUrl } from "@/components/dashboard/VideoUrlInp
 export const Route = createFileRoute("/_authenticated/dashboard/it/home-content")({
   head: () => ({ meta: [{ title: "Homepage Content — NOVAWORKS" }] }),
   component: () => (
-    <RoleGate allow={["it"]} exclusive>
+    <RoleGate allow={["it","admin"]}>
       <Page />
     </RoleGate>
   ),

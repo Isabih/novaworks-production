@@ -2,8 +2,16 @@ import type { SessionUser } from "./auth.server";
 import { queryRows } from "./mysql.server";
 
 export async function getNovaContext(user:SessionUser|null){
- if(!user)return {authenticated:false,scope:"public"};
- const base:any={authenticated:true,user:{id:user.id,name:user.full_name,email:user.email,roles:user.roles}};
+ let publicContact:any={};
+ try{
+  const [r]=await queryRows<any[]>(`SELECT contact_info FROM app_settings WHERE id=1`);
+  const info=typeof r?.contact_info==="string"?JSON.parse(r.contact_info):r?.contact_info||{};
+  publicContact={email:info.email||null,phone:info.phone||null,address:info.address||null,hours:info.hours||null};
+ }catch(e){console.error("[nova-context] contact unavailable",e)}
+ const publicBase={contact:publicContact,website:"https://novaworks.rw"};
+
+ if(!user)return {...publicBase,authenticated:false,scope:"public"};
+ const base:any={...publicBase,authenticated:true,user:{id:user.id,name:user.full_name,email:user.email,roles:user.roles}};
  if(user.roles.includes("customer")){
    const [customers]=await queryRows<any[]>(`SELECT id,full_name,email,phone FROM customers WHERE user_id=? LIMIT 1`,[user.id]);const c=customers[0];if(!c)return {...base,customer:null};
    const [stays]=await queryRows<any[]>(`SELECT t.id,t.status,t.start_date,t.end_date,t.rent_amount,t.currency,DATEDIFF(t.end_date,CURRENT_DATE()) days_remaining,p.title property,a.code apartment FROM tenancies t JOIN properties p ON p.id=t.property_id JOIN apartments a ON a.id=t.apartment_id WHERE t.customer_id=? ORDER BY t.created_at DESC LIMIT 5`,[c.id]);

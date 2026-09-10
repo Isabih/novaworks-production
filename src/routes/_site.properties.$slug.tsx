@@ -7,7 +7,7 @@ import {
   Bell, Download, ShoppingBag, CalendarCheck, Utensils, Hospital, School, Train, Trees, Landmark, ExternalLink,
 } from "lucide-react";
 import {
-  formatPrice, CATEGORY_META, ROOM_META,
+  CATEGORY_META, ROOM_META,
   type Property, type RoomCategory, type RoomImage, type NeighborhoodPlace,
 } from "@/lib/properties";
 import { fetchPropertyForView } from "@/lib/properties-view.functions";
@@ -18,8 +18,6 @@ import { Lightbox } from "@/components/site/Lightbox";
 import { LuxuryGate, hasLuxuryAccess } from "@/components/site/LuxuryGate";
 import { prefetchImage, prefetchImages } from "@/lib/image-prefetch";
 import { createVisitRequest } from "@/lib/visit-requests.functions";
-import { useAuth } from "@/lib/use-auth";
-import { PropertyBookingModal } from "@/components/site/PropertyBookingModal";
 
 export const Route = createFileRoute("/_site/properties/$slug")({
   loader: async ({ params }) => {
@@ -68,10 +66,7 @@ function PropertyDetail() {
   const [mediaTab, setMediaTab] = useState<"photos" | "video" | "tour" | "floorplan">("photos");
   const [lightbox, setLightbox] = useState<{ images: { src: string; label?: string }[]; idx: number } | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
-  const [bookingOpen, setBookingOpen] = useState(false);
-  const [bookingApartmentId,setBookingApartmentId]=useState<string|null>(null);
   const [visitApartmentId,setVisitApartmentId]=useState<string|null>(null);
-  const { user, roles } = useAuth();
   // Luxury gate: if property is luxury and visitor has no access token, block content
   useEffect(() => {
     if (p.luxury && p.locked && !hasLuxuryAccess()) setGateOpen(true);
@@ -107,18 +102,10 @@ function PropertyDetail() {
   const heroMain = roomGallery[0];
   const heroSide = roomGallery.slice(1, 5);
   const extraCount = Math.max(0, roomGallery.length - 5);
-  useEffect(() => {
-    if (!user || !roles.includes("customer")) return;
-    try {
-      const wanted = localStorage.getItem("nw_open_booking_after_auth");
-      if (wanted === p.slug) { const unit=localStorage.getItem("nw_booking_apartment_id"); localStorage.removeItem("nw_open_booking_after_auth"); localStorage.removeItem("nw_booking_apartment_id"); if(unit)setBookingApartmentId(unit); setBookingOpen(true); }
-    } catch {}
-  }, [user, roles, p.slug]);
 
   return (
     <div className="bg-background">
       {gateOpen && <LuxuryGate slug={p.slug} />}
-      <PropertyBookingModal open={bookingOpen} onClose={() => {setBookingOpen(false);setBookingApartmentId(null)}} property={p} initialApartmentId={bookingApartmentId} />
       {lightbox && (
         <Lightbox
           images={lightbox.images}
@@ -127,91 +114,119 @@ function PropertyDetail() {
           onIndexChange={(i) => setLightbox((l) => (l ? { ...l, idx: i } : l))}
         />
       )}
-      {/* Hero collage */}
-      <section className="bg-noir-deep pt-6">
-        <div className="container-luxe">
-          <Link to="/properties" className="inline-flex items-center gap-2 text-white/60 hover:text-gold text-sm mb-4">
-            <ArrowLeft className="w-4 h-4" /> Back to properties
-          </Link>
+      {/* Cinematic property hero — V1.2.3 */}
+      <section className="relative">
+        <div className="relative h-[76vh] min-h-[560px] max-h-[820px] w-full overflow-hidden bg-noir-deep">
+          <ProgressiveImage
+            src={heroMain?.src || p.image}
+            alt={p.title}
+            priority
+            width={1800}
+            height={1100}
+            widths={[640,960,1280,1600,2000]}
+            sizes="100vw"
+            containerClassName="absolute inset-0"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-noir-deep/42" />
+          <div className="absolute inset-0 bg-gradient-to-t from-noir-deep/95 via-noir-deep/20 to-noir-deep/50" />
 
-          <div className="grid grid-cols-2 md:grid-cols-4 grid-rows-2 gap-2 h-[360px] md:h-[480px] rounded-2xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => openLightbox(roomGallery, heroMain.src)}
-              className="col-span-2 row-span-2 relative group cursor-zoom-in"
-            >
-              <ProgressiveImage src={heroMain.src} alt={heroMain.label ?? ROOM_META[heroMain.room].label} priority width={1200} height={960} widths={[640,900,1200,1600]} sizes="(min-width:1024px) 50vw, 100vw" containerClassName="absolute inset-0" className="w-full h-full object-cover" />
-              <div className="absolute top-4 left-4 flex gap-2">
-                {p.luxury && (
-                  <span className="inline-flex items-center gap-1 bg-gradient-to-r from-gold-soft to-gold text-noir-deep text-[11px] font-semibold uppercase tracking-wider px-3 py-1.5 rounded-md">
-                    <Crown className="w-3 h-3" /> Luxury
-                  </span>
-                )}
-              </div>
-            </button>
-            {heroSide.map((g, i) => (
-              <button
-                type="button"
-                key={i}
-                onClick={() => openLightbox(roomGallery, g.src)}
-                className="relative cursor-zoom-in group hidden md:block"
+          <div className="relative container-luxe flex h-full flex-col justify-between pb-7 pt-24 text-white">
+            <div className="flex items-start justify-between gap-4">
+              <Link
+                to="/properties"
+                className="glass-dark inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm text-white/85 hover:text-gold"
               >
-                <ProgressiveImage src={g.src} alt={g.label ?? ROOM_META[g.room].label} width={700} height={480} widths={[360,520,700,1000]} sizes="(min-width:1024px) 25vw, 50vw" containerClassName="absolute inset-0" className="w-full h-full object-cover" />
-                {i === heroSide.length - 1 && extraCount > 0 && (
-                  <div className="absolute inset-0 bg-noir-deep/55 flex items-center justify-center text-white">
-                    <Maximize2 className="w-5 h-5 mr-1" /> +{extraCount} more
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Title + price band */}
-          <div className="relative -mb-12 mt-8">
-            <div className="bg-card text-foreground rounded-2xl shadow-2xl p-7 grid lg:grid-cols-[1fr_auto] gap-6 items-start border border-border">
-              <div>
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {p.luxury && <Pill icon={<Crown className="w-3 h-3" />} className="bg-gold/15 text-gold">Luxury</Pill>}
-                  <Pill className="bg-muted text-foreground">{CATEGORY_META[p.category].label}</Pill>
-                  <Pill className="bg-emerald-500/15 text-emerald-600 capitalize">{p.status}</Pill>
-                </div>
-                <h1 className="font-display text-3xl md:text-4xl">{p.title}</h1>
-                <div className="mt-2 flex items-center gap-1.5 text-muted-foreground text-sm">
-                  <MapPin className="w-4 h-4 text-gold" /> {p.address}, {p.district}
-                </div>
+                <ArrowLeft className="h-4 w-4" /> Back to properties
+              </Link>
+              <div className="flex gap-2">
+                <button type="button" className="glass-dark grid h-10 w-10 place-items-center rounded-full" aria-label="Save property">
+                  <Heart className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => {
+                  if (navigator.share) navigator.share({ title: p.title, url: window.location.href }).catch(() => {});
+                  else navigator.clipboard?.writeText(window.location.href).catch(() => {});
+                }} className="glass-dark grid h-10 w-10 place-items-center rounded-full" aria-label="Share property">
+                  <Share2 className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => window.print()} className="glass-dark grid h-10 w-10 place-items-center rounded-full" aria-label="Print property">
+                  <Printer className="h-4 w-4" />
+                </button>
               </div>
-              <div className="lg:text-right">
-                <div className="font-display text-3xl">{formatPrice(p)}</div>
-                <div className="text-xs text-muted-foreground">{p.priceUnit === "month" ? "Monthly" : "Sale Price"}</div>
-                <div className="mt-4 flex lg:justify-end gap-2">
-                  <IconBtn><Heart className="w-4 h-4" /></IconBtn>
-                  <IconBtn><Share2 className="w-4 h-4" /></IconBtn>
-                  <IconBtn><Printer className="w-4 h-4" /></IconBtn>
-                  <button type="button" onClick={() => {
-                    if (!user || !roles.includes("customer")) {
-                      try {
-                        localStorage.setItem("nw_post_auth_redirect", `/properties/${p.slug}`);
-                        localStorage.setItem("nw_open_booking_after_auth", p.slug);
-                        if (user && !roles.includes("customer")) localStorage.removeItem("novaworks_session");
-                      } catch {}
-                      window.location.href = "/auth";
-                      return;
-                    }
-                    setBookingOpen(true);
-                  }} className="inline-flex items-center gap-2 rounded-md border border-gold bg-gold px-5 py-2 text-sm font-bold text-noir-deep shadow-[0_8px_22px_rgba(216,164,75,.25)] transition hover:-translate-y-0.5 hover:shadow-xl">
-                    <CalendarCheck className="w-4 h-4" /> Book Apartment
-                  </button>
-                  <a href={`mailto:${p.agent?.email ?? "info@novaworks.rw"}`} className="inline-flex items-center gap-2 bg-noir-deep text-white border border-white/10 text-sm font-medium px-5 py-2 rounded-md hover:bg-noir transition">
-                    <Mail className="w-4 h-4" /> Inquire Now
-                  </a>
-                </div>
+            </div>
+
+            <div className="max-w-4xl">
+              <div className="mb-4 flex flex-wrap gap-2">
+                {p.luxury && <Pill className="bg-gold text-noir-deep"><Crown className="h-3 w-3" />Luxury</Pill>}
+                <Pill className="glass-dark text-white">{CATEGORY_META[p.category].label}</Pill>
+                <Pill className="glass-dark text-white capitalize">{p.status}</Pill>
+              </div>
+              <h1 className="font-display text-4xl leading-[1.05] md:text-6xl">{p.title}</h1>
+              <p className="mt-4 flex items-center gap-2 text-sm text-white/75">
+                <MapPin className="h-4 w-4 text-gold" />
+                {[p.address || p.location, p.district].filter(Boolean).join(", ")}
+              </p>
+            </div>
+
+            <div className="glass-dark flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-white/15 px-5 py-4">
+              <div className="flex flex-wrap gap-5 text-sm text-white/80">
+                {p.beds != null && <HeroFact icon={<Bed className="h-4 w-4" />} value={`${p.beds} Beds`} />}
+                {p.baths != null && <HeroFact icon={<Bath className="h-4 w-4" />} value={`${p.baths} Baths`} />}
+                {p.area > 0 && <HeroFact icon={<Maximize2 className="h-4 w-4" />} value={`${p.area} m²`} />}
+                {p.parking != null && p.parking > 0 && <HeroFact icon={<Car className="h-4 w-4" />} value={`${p.parking} Parking`} />}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => openLightbox(roomGallery, heroMain?.src || p.image)}
+                  className="glass inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm text-white hover:text-gold"
+                >
+                  <ImageIcon className="h-4 w-4" /> View all {roomGallery.length} photos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("schedule-visit")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-soft to-gold px-5 py-2.5 text-sm font-semibold text-noir-deep"
+                >
+                  <CalendarCheck className="h-4 w-4" /> Schedule a Visit
+                </button>
               </div>
             </div>
           </div>
         </div>
+
+        {heroSide.length > 0 && (
+          <div className="container-luxe relative z-10 -mt-8">
+            <div className="glass-panel grid grid-cols-2 gap-2 rounded-2xl p-2 md:grid-cols-4">
+              {heroSide.map((g, i) => (
+                <button
+                  type="button"
+                  key={i}
+                  onClick={() => openLightbox(roomGallery, g.src)}
+                  onMouseEnter={() => prefetchImage(g.src)}
+                  className="group relative aspect-[4/3] cursor-zoom-in overflow-hidden rounded-xl"
+                >
+                  <ProgressiveImage
+                    src={g.src}
+                    alt={g.label || ROOM_META[g.room].label}
+                    width={700}
+                    height={525}
+                    containerClassName="absolute inset-0"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  {i === heroSide.length - 1 && extraCount > 0 && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-noir-deep/60 text-sm text-white">
+                      <Maximize2 className="mr-1.5 h-4 w-4" /> +{extraCount} more
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
-      <section className="pt-20 pb-8">
+      <section className="pt-14 pb-8">
         <div className="container-luxe grid lg:grid-cols-[1fr_380px] gap-10">
           {/* MAIN */}
           <div className="space-y-12">
@@ -313,7 +328,7 @@ function PropertyDetail() {
             {(p as any).apartments?.length > 0 && (
               <Section title="Available Units">
                 <p className="text-sm text-muted-foreground mb-4">Select the exact apartment, office or studio you want. Only currently available units are shown.</p>
-                <div className="grid sm:grid-cols-2 gap-4">{(p as any).apartments.map((a:any)=>{let unitImgs:any[]=[];try{unitImgs=typeof a.images_json==='string'?JSON.parse(a.images_json):a.images_json||[]}catch{};const unitCover=unitImgs?.find((x:any)=>x.is_cover)?.url||unitImgs?.[0]?.url;return <div key={a.id} className="rounded-2xl border border-border overflow-hidden bg-card"><div className="aspect-[16/9] bg-muted overflow-hidden">{unitCover?<img src={unitCover} alt={`${a.code} at ${p.title}`} className="w-full h-full object-cover"/>:<div className="h-full grid place-items-center text-sm text-muted-foreground">Apartment images coming soon — schedule a visit</div>}</div><div className="p-4"><div className="flex justify-between gap-3"><div><b>{a.name||a.code}</b><div className="text-xs text-muted-foreground">{String(a.unit_type||'apartment').toUpperCase()} {a.code}{a.floor!=null?` · Floor ${a.floor}`:''} · inside ${p.title}</div></div><span className="text-[11px] text-emerald-700">AVAILABLE</span></div><div className="mt-2 text-sm">{a.bedrooms??'—'} beds · {a.bathrooms??'—'} baths{a.area_sqm?` · ${a.area_sqm} sqm`:''}</div><div className="mt-2 font-semibold">{p.currency} {Number(a.monthly_price||p.price||0).toLocaleString()} / month</div><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={()=>{if(!user||!roles.includes("customer")){try{localStorage.setItem("nw_post_auth_redirect",`/properties/${p.slug}`);localStorage.setItem("nw_open_booking_after_auth",p.slug);localStorage.setItem("nw_booking_apartment_id",a.id);if(user&&!roles.includes("customer"))localStorage.removeItem("novaworks_session")}catch{}window.location.href="/auth";return;}setBookingApartmentId(a.id);setBookingOpen(true)}} className="inline-flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-medium text-noir-deep"><CalendarCheck className="h-4 w-4"/>Book {a.code}</button><button type="button" onClick={()=>{setVisitApartmentId(a.id);setTimeout(()=>document.getElementById("visit")?.scrollIntoView({behavior:"smooth",block:"center"}),20)}} className="inline-flex items-center rounded-lg border px-4 py-2 text-sm">Schedule visit</button></div></div></div>})}</div>
+                <div className="grid sm:grid-cols-2 gap-4">{(p as any).apartments.map((a:any)=>{let unitImgs:any[]=[];try{unitImgs=typeof a.images_json==='string'?JSON.parse(a.images_json):a.images_json||[]}catch{};const unitCover=unitImgs?.find((x:any)=>x.is_cover)?.url||unitImgs?.[0]?.url;return <div key={a.id} className="rounded-2xl border border-border overflow-hidden bg-card"><div className="aspect-[16/9] bg-muted overflow-hidden">{unitCover?<img src={unitCover} alt={`${a.code} at ${p.title}`} className="w-full h-full object-cover"/>:<div className="h-full grid place-items-center text-sm text-muted-foreground">Apartment images coming soon — schedule a visit</div>}</div><div className="p-4"><div className="flex justify-between gap-3"><div><b>{a.name||a.code}</b><div className="text-xs text-muted-foreground">{String(a.unit_type||'apartment').toUpperCase()} {a.code}{a.floor!=null?` · Floor ${a.floor}`:''} · inside ${p.title}</div></div><span className="text-[11px] text-emerald-700">AVAILABLE</span></div><div className="mt-2 text-sm">{a.bedrooms??'—'} beds · {a.bathrooms??'—'} baths{a.area_sqm?` · ${a.area_sqm} sqm`:''}</div><div className="mt-3"><button type="button" onClick={()=>{setVisitApartmentId(a.id);setTimeout(()=>document.getElementById("schedule-visit")?.scrollIntoView({behavior:"smooth",block:"center"}),20)}} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-gold-soft to-gold px-4 py-2 text-sm font-medium text-noir-deep"><CalendarCheck className="h-4 w-4"/>Schedule a Visit</button></div></div></div>})}</div>
               </Section>
             )}
 
@@ -321,7 +336,7 @@ function PropertyDetail() {
             <Section title="About This Property">
               <p className="text-muted-foreground leading-relaxed">{p.description}</p>
               <p className="text-muted-foreground leading-relaxed mt-3">
-                This residence has been curated by NOVAWORKS for clients who value discretion, design integrity, and locations that hold long-term value.
+                
               </p>
             </Section>
 
@@ -399,7 +414,7 @@ function PropertyDetail() {
                 <Lock className="w-4 h-4 text-gold mt-0.5" />
                 <div className="flex-1">
                   <div className="text-foreground font-medium">Exclusive Luxury Listing</div>
-                  <div className="text-muted-foreground">Full media & pricing require verified-member access.</div>
+                  <div className="text-muted-foreground">Full media and exclusive property details require verified-member access.</div>
                 </div>
                 <Link to="/verify-access" search={{ slug: p.slug }} className="text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-gold-soft to-gold text-noir-deep px-4 py-2 rounded-md">
                   Request Access
@@ -467,7 +482,7 @@ function MediaTab({ active, disabled, onClick, icon, label }: { active: boolean;
     <button
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
-      className={`inline-flex items-center justify-center gap-2 text-sm px-4 py-2.5 rounded-lg transition-colors ${
+      className={`inline-flex items-center justify-center gap-2 text-sm px-4 py-2.5 rounded-full transition-colors ${
         active
           ? "bg-gradient-to-r from-gold-soft to-gold text-noir-deep shadow"
           : disabled
@@ -599,13 +614,13 @@ function ScheduleVisitCard({ propertyId, apartments=[], initialApartmentId=null 
     try {
       await createVisit({ data: { property_id: propertyId, apartment_id: form.apartment_id || undefined, name: form.name, email: form.email, phone: form.phone, requested_for: `${form.date}T${form.time}:00`, notes: form.notes } });
       setSent(true);
-    } catch (err: any) { setError(err?.message ?? "Could not request visit"); }
+    } catch (err: any) { setError(err?.message ?? "Could not schedule visit"); }
     finally { setBusy(false); }
   };
   return (
     <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
       <h3 className="font-display text-xl mb-4">Schedule a Visit</h3>
-      {sent ? <div className="text-sm text-muted-foreground py-6 text-center"><Check className="w-6 h-6 text-gold mx-auto"/><div className="mt-2">Request sent — our team has been notified and will confirm your viewing.</div></div> :
+      {sent ? <div className="text-sm text-muted-foreground py-6 text-center"><Check className="w-6 h-6 text-gold mx-auto"/><div className="mt-2">Visit request received — our team will contact you to confirm the date and time.</div></div> :
       <form onSubmit={submit} className="space-y-3">
         <Field label="Full Name"><input required className="input-luxe" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Your name"/></Field>
         <Field label="Email"><input required type="email" className="input-luxe" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="your@email.com"/></Field>
@@ -613,7 +628,7 @@ function ScheduleVisitCard({ propertyId, apartments=[], initialApartmentId=null 
         <div className="grid grid-cols-2 gap-2"><Field label="Preferred Date"><input required type="date" className="input-luxe" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></Field><Field label="Time"><input required type="time" className="input-luxe" value={form.time} onChange={e=>setForm({...form,time:e.target.value})}/></Field></div>
         <Field label="Message (Optional)"><textarea rows={3} className="input-luxe" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Tell us about your requirements…"/></Field>
         {error&&<p className="text-xs text-rose-600">{error}</p>}
-        <button disabled={busy} className="w-full bg-gradient-to-r from-gold-soft to-gold text-noir-deep font-medium py-2.5 rounded-md disabled:opacity-60">{busy?"Sending…":"Request Visit"}</button>
+        <button disabled={busy} className="w-full bg-gradient-to-r from-gold-soft to-gold text-noir-deep font-medium py-2.5 rounded-md disabled:opacity-60">{busy?"Scheduling…":"Schedule Visit"}</button>
       </form>}
     </div>
   );
@@ -626,4 +641,21 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </label>
   );
+}
+
+function HeroFact({
+  icon,
+  value,
+}: {
+  icon: React.ReactNode;
+  value: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="text-gold">{icon}</span>
+      {value}
+    </span>
+  );
+
+
 }

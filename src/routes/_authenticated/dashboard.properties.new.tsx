@@ -45,6 +45,7 @@ function NewProperty() {
     structure_mode: "standalone",
     listing_type: "sale",
     price: "",
+    show_price: false,
     currency: "USD",
     bedrooms: "",
     bathrooms: "",
@@ -121,14 +122,15 @@ function NewProperty() {
 
   const submit = async (status: "draft" | "active") => {
     if (!user) return;
-    if (!form.title.trim() || !form.price) {
-      toast.error("Title and price are required");
+    if (!form.title.trim()) {
+      toast.error("Title is required");
       return;
     }
     if (!form.owner_id) {
       toast.error("Please select an owner — it is required.");
       return;
     }
+    if (form.show_price && (!form.price || Number(form.price) <= 0)) return toast.error("Enter a positive price before enabling public display");
     setSubmitting(true);
     setUploadProgress(files.map(() => 0));
     setUploadProviders(files.map(() => null));
@@ -165,7 +167,8 @@ function NewProperty() {
         structure_mode: form.structure_mode,
         unit_type: form.property_type,
         listing_type: form.listing_type,
-        price: Number(form.price),
+        price: form.price.trim() ? Number(form.price) : null,
+        show_price: form.show_price,
         currency: form.currency,
         bedrooms: Number(form.bedrooms) || 0,
         bathrooms: Number(form.bathrooms) || 0,
@@ -255,14 +258,15 @@ function NewProperty() {
                   <option value="rent">For rent</option>
                 </select>
               </Field>
-              <Field label="Price" >
-                <input className="input-luxe" type="number" value={form.price} onChange={update("price")} placeholder="0" />
+              <Field label="Price (optional)" >
+                <input className="input-luxe" type="number" min="0" step="0.01" value={form.price} onChange={update("price")} placeholder="0" />
               </Field>
               <Field label="Currency">
                 <select className="input-luxe" value={form.currency} onChange={update("currency")}>
                   <option>USD</option><option>EUR</option><option>RWF</option>
                 </select>
               </Field>
+              <Field label="Public price visibility" full><select className="input-luxe" value={form.show_price ? "yes" : "no"} onChange={e=>setForm(f=>({...f,show_price:e.target.value==="yes"}))}><option value="no">Hide price · Price on request</option><option value="yes">Display price publicly</option></select></Field>
               <Field label="Bedrooms"><input className="input-luxe" type="number" value={form.bedrooms} onChange={update("bedrooms")} /></Field>
               <Field label="Bathrooms"><input className="input-luxe" type="number" value={form.bathrooms} onChange={update("bathrooms")} /></Field>
               <Field label="Area (m²)"><input className="input-luxe" type="number" value={form.area_sqm} onChange={update("area_sqm")} /></Field>
@@ -363,7 +367,7 @@ function NewProperty() {
             )}
           </Panel>
 
-          <Panel title="Tips" subtitle="Listings with photos perform 5× better">
+          <Panel title="Tips" subtitle="Make your listing presentation complete">
             <ul className="text-sm text-noir/60 space-y-2 list-disc list-inside">
               <li>Add at least 5 high-quality photos.</li>
               <li>Set accurate coordinates for the map.</li>
@@ -373,8 +377,7 @@ function NewProperty() {
 
           <Panel title="Email notifications" subtitle="Sent automatically on publish">
             <p className="text-sm text-noir/70">
-              When you click <em>Publish</em>, every verified subscriber <strong>and</strong> every staff/user
-              account with an email on file is notified about this property. Drafts never notify.
+              Only opted-in subscribers are notified when you publish, and only if notifications are enabled. Drafts never notify.
             </p>
           </Panel>
         </div>

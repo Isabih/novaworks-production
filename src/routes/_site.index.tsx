@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Play, Pause, Search, MapPin, Building2, Castle, Home, Briefcase, Square, Store, Award, Globe, Users, Building, ShieldCheck, Sparkles, TrendingUp, Quote, Star, Bed, Bath, Maximize2, Crown, ChevronDown } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Play, Pause, Search, MapPin, Building2, Castle, Home, Briefcase, Square, Store, Award, Globe, Users, Building, ShieldCheck, Sparkles, TrendingUp, Quote, Star, Bed, Bath, Maximize2, Crown, ChevronDown } from "lucide-react";
 import { CATEGORY_META, type PropertyCategory, type Property } from "@/lib/properties";
 import type { PropertyTypeRow } from "@/lib/property-types.types";
 import { PropertyCard } from "@/components/site/PropertyCard";
@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ProgressiveImage } from "@/components/site/ProgressiveImage";
 import { getYouTubeId } from "@/components/site/VideoPlayer";
 import { GuidedTour } from "@/components/site/GuidedTour";
+import { PropertyCornerPopup } from "@/components/site/PropertyCornerPopup";
 
 export const Route = createFileRoute("/_site/")({
   head: () => ({
@@ -54,7 +55,7 @@ const FALLBACK_SLIDES = [
  ] as const;
 
 type FeaturedProperty = {
-  id: string; slug: string; title: string; price: number; currency: string;
+  id: string; slug: string; title: string; price: number | null; show_price?: boolean; currency: string;
   city: string | null; property_type: string; listing_type: string; bedrooms: number;
   bathrooms: number; area_sqm: number | null; image: string | null; cover?: string | null;
 };
@@ -64,7 +65,6 @@ function HomePage() {
   const [tab, setTab] = useState<"rent" | "sale" | "all">("rent");
   const [heroLocation,setHeroLocation]=useState("");
   const [heroType,setHeroType]=useState("");
-  const [heroPrice,setHeroPrice]=useState("");
   const [heroKeyword,setHeroKeyword]=useState("");
   const [storyActive, setStoryActive] = useState(false);
   const [slide, setSlide] = useState(0);
@@ -84,11 +84,12 @@ function HomePage() {
     queryFn: async () => {
       const r = await fetch("/api/public/property-categories?bundle=home");
       if (!r.ok) throw new Error(`public home bundle ${r.status}`);
-      return r.json() as Promise<{ home: any; featured: FeaturedProperty[]; pod: any | null }>;
+      return r.json() as Promise<{ home: any; featured: FeaturedProperty[]; pod: any | null; stats?: {properties:number;available_units:number;customers:number;locations:number}|null }>;
     },
     staleTime: 60_000,
   });
   const home = publicHome?.home;
+  const stats = publicHome?.stats;
   const HERO_SLIDES = (home?.hero_slides && home.hero_slides.length > 0 ? home.hero_slides : FALLBACK_SLIDES) as ReadonlyArray<{ image: string; title: string; titleAccent: string; subtitle: string }>;
   const categoryImages = home?.category_images ?? {};
   const nextSlide = useCallback(() => {
@@ -190,61 +191,36 @@ function HomePage() {
           </>
         )}
 
-        <div className="relative h-full container-luxe flex items-center pt-20">
-          <div className="max-w-4xl">
-            <div className={`inline-flex items-center gap-3 px-5 py-2.5 rounded-full glass mb-10 transition-all duration-700 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gold" />
-              </span>
-              <span className="text-white/90 text-sm font-medium tracking-wide">Rwanda's Premier Luxury Real Estate</span>
+        <div className="relative h-full container-luxe flex items-center pt-28 lg:pt-32">
+          <div className="grid lg:grid-cols-[250px_1fr_320px] gap-6 lg:gap-9 items-center w-full">
+            <div className={`hidden lg:block transition-all duration-700 ${loaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-6"}`}>
+              <div className="glass-dark rounded-2xl border border-white/10 p-4 space-y-1 shadow-2xl">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-white/45 mb-3 px-2">Browse Categories</div>
+                {(dynCats ? dynCats.filter(c=>c.enabled) : (Object.keys(CATEGORY_META) as PropertyCategory[]).map(k=>({key:k,label:CATEGORY_META[k].label,enabled:true}))).map(c=>{const cat=c.key as PropertyCategory;const Icon=CATEGORY_ICONS[cat]??Building2;return <Link key={cat} to="/properties" search={{category:cat}} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/80 hover:text-gold hover:bg-white/5 transition group"><span className="grid h-8 w-8 place-items-center rounded-lg bg-gold/10 text-gold group-hover:bg-gold group-hover:text-noir-deep"><Icon className="h-4 w-4"/></span><span className="text-sm font-medium">{c.label}</span><ArrowRight className="ml-auto h-3.5 w-3.5 opacity-0 group-hover:opacity-100"/></Link>})}
+              </div>
             </div>
 
-            <div className={`mb-8 transition-all duration-700 delay-100 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
-              <h1 className="font-display text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-white leading-[1.05]">
-                <span className="block">{currentSlide.title}</span>
-                <span className="block gold-text italic">{currentSlide.titleAccent}</span>
-              </h1>
+            <div className="max-w-3xl">
+              <div className={`inline-flex items-center gap-3 px-5 py-2.5 rounded-full glass mb-8 transition-all duration-700 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+                <span className="relative flex h-2.5 w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"/><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gold"/></span>
+                <span className="text-white/90 text-sm font-medium tracking-wide">Rwanda's Premier Luxury Real Estate</span>
+              </div>
+              <div className={`mb-6 transition-all duration-700 delay-100 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}><h1 className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.05]"><span className="block">{currentSlide.title}</span><span className="block gold-text italic">{currentSlide.titleAccent}</span></h1></div>
+              <p className={`text-lg md:text-xl text-white/75 mb-9 max-w-xl leading-relaxed font-light transition-all duration-700 delay-200 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>{currentSlide.subtitle}</p>
+              <div className={`flex flex-wrap items-center gap-3 transition-all duration-700 delay-300 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
+                <Link to="/properties" className="btn-luxury group inline-flex items-center gap-2 bg-gradient-to-r from-gold-soft to-gold text-noir-deep h-12 px-7 rounded-md text-sm font-medium">Explore Properties <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1"/></Link>
+                <button onClick={()=>setTourOpen(true)} className="inline-flex items-center gap-2 border border-gold/60 text-white hover:bg-gold/15 h-12 px-6 rounded-md text-sm backdrop-blur-sm transition-colors"><Sparkles className="w-4 h-4"/>Guided Tour</button>
+                <button onClick={()=>setStoryActive(v=>!v)} className="inline-flex items-center gap-2 border border-white/30 text-white hover:bg-white/10 h-12 px-6 rounded-md text-sm backdrop-blur-sm transition-colors">{storyActive?<><Pause className="w-4 h-4 fill-current"/>Stop Video</>:<><Play className="w-4 h-4 fill-current"/>Watch Story</>}</button>
+              </div>
+              <div className={`mt-10 pt-7 border-t border-white/10 flex flex-wrap items-center gap-x-8 gap-y-4 transition-all duration-700 delay-400 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
+                {[{n:stats?.properties??"—",l:"Properties Listed"},{n:stats?.available_units??"—",l:"Available Units"},{n:stats?.customers??"—",l:"Registered Customers"}].map((x,idx)=><div key={x.l} className="flex items-center gap-8">{idx>0&&<div className="hidden sm:block h-12 w-px bg-white/10"/>}<div><p className="font-display text-3xl font-bold text-white leading-none">{x.n}</p><p className="mt-1 text-[10px] uppercase tracking-[.18em] text-white/45">{x.l}</p></div></div>)}
+              </div>
             </div>
 
-            <p className={`text-xl md:text-2xl text-white/75 mb-12 max-w-2xl leading-relaxed font-light transition-all duration-700 delay-200 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
-              {currentSlide.subtitle}
-            </p>
-
-            <div className={`flex flex-wrap items-center gap-4 transition-all duration-700 delay-300 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
-              <Link to="/properties" className="btn-luxury group inline-flex items-center gap-2 bg-gradient-to-r from-gold-soft to-gold text-noir-deep h-14 px-8 rounded-md text-base font-medium">
-                Explore Properties <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <button onClick={()=>setTourOpen(true)} className="inline-flex items-center gap-2 border border-gold/70 text-white hover:bg-gold/15 h-14 px-8 rounded-md text-base backdrop-blur-sm transition-colors"><Sparkles className="w-5 h-5"/>Tour</button>
-              <button
-                onClick={() => setStoryActive((v) => !v)}
-                className="inline-flex items-center gap-2 border border-white/30 text-white hover:bg-white/10 h-14 px-8 rounded-md text-base backdrop-blur-sm transition-colors"
-              >
-                {storyActive ? (
-                  <><Pause className="w-5 h-5 fill-current" /> Stop Video</>
-                ) : (
-                  <><Play className="w-5 h-5 fill-current" /> Watch Story</>
-                )}
-              </button>
-            </div>
-
-            <div className={`mt-16 pt-10 border-t border-white/10 flex flex-wrap items-center gap-x-12 gap-y-6 transition-all duration-700 delay-400 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
-              {[
-                { n: "500", l: "Premium Properties" },
-                { n: "15", l: "Years Experience" },
-                { n: "2K", l: "Happy Clients" },
-              ].map((s, idx) => (
-                <div key={s.l} className="flex items-center gap-12">
-                  {idx > 0 && <div className="w-px h-16 bg-white/10 hidden sm:block" />}
-                  <div>
-                    <p className="text-5xl font-display font-bold text-white mb-1 leading-none">{s.n}<span className="text-gold">+</span></p>
-                    <p className="text-white/50 text-xs uppercase tracking-[0.2em] mt-2">{s.l}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className={`hidden xl:block transition-all duration-700 delay-200 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}><HeroFeaturedCard property={featured[0]}/></div>
           </div>
         </div>
+        <PropertyCornerPopup placement="hero" />
 
         {/* Slide controls */}
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-6 z-10">
@@ -280,16 +256,16 @@ function HomePage() {
       </section>
 
       {/* SEARCH SECTION */}
-      <section className="bg-background py-12 lg:py-16 border-b border-border">
+      <section className="relative -mt-24 z-20 pb-14 lg:pb-20">
         <div className="container-luxe">
-          <div className="bg-card rounded-2xl shadow-xl overflow-hidden border border-border">
-            <div className="flex border-b border-border">
+          <div className="cinematic-surface rounded-2xl overflow-hidden text-white shadow-2xl">
+            <div className="flex border-b border-white/10 bg-white/[0.025]">
               {(["rent", "sale", "all"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   className={`flex-1 py-4 text-sm font-medium transition-colors ${
-                    tab === t ? "text-foreground border-b-2 border-gold" : "text-muted-foreground hover:text-foreground"
+                    tab === t ? "text-gold border-b-2 border-gold bg-white/[0.04]" : "text-white/55 hover:text-white"
                   }`}
                 >
                   {t === "rent" ? "For Rent" : t === "sale" ? "For Sale" : "All Properties"}
@@ -299,10 +275,9 @@ function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_max-content] gap-3 p-6 items-end">
               <SearchSelect icon={<MapPin className="w-4 h-4" />} label="Location" value={heroLocation} onChange={setHeroLocation} options={[["","All Rwanda"],["Kigali","Kigali"],["Gasabo","Gasabo"],["Kicukiro","Kicukiro"],["Nyarugenge","Nyarugenge"],["Musanze","Musanze"],["Rubavu","Rubavu"],["Huye","Huye"]]} />
               <SearchSelect icon={<Home className="w-4 h-4" />} label="Property Type" value={heroType} onChange={setHeroType} options={[["","All types"],...(dynCats?.filter(c=>c.enabled).map(c=>[c.key,c.label] as [string,string])??Object.entries(CATEGORY_META as Record<string,{label:string}>).map(([k,v])=>[k,v.label] as [string,string]))]} />
-              <SearchSelect icon={<span className="text-base leading-none">$</span>} label="Price Range" value={heroPrice} onChange={setHeroPrice} options={[["","Any price"],["0-500","Under 500"],["500-1000","500 – 1,000"],["1000-3000","1,000 – 3,000"],["3000-10000","3,000 – 10,000"],["10000-","10,000+"]]} />
               <div className="flex flex-col gap-1.5 min-w-0">
-                <label className="text-xs text-muted-foreground">Keyword</label>
-                <input value={heroKeyword} onChange={e=>setHeroKeyword(e.target.value)} className="bg-muted rounded-md px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gold/30 w-full min-w-0" placeholder="Search by name..." />
+                <label className="text-xs text-white/55">Keyword</label>
+                <input value={heroKeyword} onChange={e=>setHeroKeyword(e.target.value)} className="cinematic-field rounded-md px-4 py-3 text-sm outline-none w-full min-w-0 text-white placeholder:text-white/40" placeholder="Search by name..." />
               </div>
               <Link
                 to="/properties"
@@ -311,8 +286,6 @@ function HomePage() {
                   category: heroType ? heroType as any : undefined,
                   city: heroLocation || undefined,
                   query: heroKeyword.trim() || undefined,
-                  minPrice: heroPrice ? heroPrice.split("-")[0] || undefined : undefined,
-                  maxPrice: heroPrice && heroPrice.includes("-") ? heroPrice.split("-")[1] || undefined : undefined,
                 } as any}
                 className="btn-luxury inline-flex items-center justify-center gap-2 bg-gradient-to-r from-gold-soft to-gold text-noir-deep rounded-md h-[46px] px-6 font-medium whitespace-nowrap shrink-0"
               >
@@ -403,9 +376,9 @@ function HomePage() {
             </p>
             <div className="mt-10 grid sm:grid-cols-3 gap-6">
               {[
-                { n: "500+", l: "Properties Delivered" },
-                { n: "2K+", l: "Clients Served" },
-                { n: "15", l: "Years of Trust" },
+                { n: stats?.properties ?? "—", l: "Properties Listed" },
+                { n: stats?.customers ?? "—", l: "Registered Customers" },
+                { n: stats?.available_units ?? "—", l: "Available Units" },
               ].map((s) => (
                 <div key={s.l}>
                   <div className="font-display text-4xl text-white">{s.n}</div>
@@ -526,10 +499,10 @@ function HomePage() {
                   </div>
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-noir-deep via-noir-deep/80 to-transparent p-6 flex items-end justify-between">
                     <div>
-                      <div className="text-xs text-white/60">Starting from</div>
+                      <div className="text-xs text-white/60">Property information</div>
                       <div className="font-display text-2xl text-white">
-                        ${pod.price.toLocaleString()}
-                        {pod.listing_type === "rent" && <span className="text-base text-white/60">/mo</span>}
+                        {pod.price != null && Number(pod.price) > 0 ? `${pod.currency || "USD"} ${Number(pod.price).toLocaleString()}` : "Price on request"}
+                        {pod.price != null && Number(pod.price)>0 && pod.listing_type === "rent" && <span className="text-base text-white/60">/mo</span>}
                       </div>
                     </div>
                     <Link to="/properties/$slug" params={{ slug: pod.slug }} className="inline-flex items-center gap-2 bg-white text-noir-deep text-sm font-medium px-4 py-2.5 rounded-md hover:bg-gold transition-colors">
@@ -593,10 +566,10 @@ function HomePage() {
       <section className="py-20 bg-noir-deep text-white">
         <div className="container-luxe grid md:grid-cols-4 gap-10 text-center">
           {[
-            { i: Building2, n: "500+", l: "Properties Listed" },
-            { i: Users, n: "2,000+", l: "Happy Clients" },
-            { i: Award, n: "15+", l: "Years Experience" },
-            { i: Globe, n: "50+", l: "Locations" },
+            { i: Building2, n: stats?.properties ?? "—", l: "Properties Listed" },
+            { i: Users, n: stats?.customers ?? "—", l: "Registered Customers" },
+            { i: Award, n: stats?.available_units ?? "—", l: "Available Units" },
+            { i: Globe, n: stats?.locations ?? "—", l: "Districts Listed" },
           ].map((s) => (
             <div key={s.l}>
               <div className="w-14 h-14 mx-auto rounded-xl bg-gold/15 text-gold flex items-center justify-center">
@@ -614,7 +587,7 @@ function HomePage() {
         <div className="container-luxe max-w-4xl text-center">
           <Quote className="w-10 h-10 text-gold mx-auto" />
           <p className="mt-6 font-display text-3xl md:text-4xl text-foreground italic leading-snug">
-            "NOVAWORKS found us a home we didn't know existed — discreet, beautifully renovated, and perfectly priced. Their team operates at a different level."
+            "Discover carefully presented properties and connect with the NOVAWORKS team for professional assistance."
           </p>
           <div className="mt-8 flex items-center justify-center gap-1 text-gold">
             {Array.from({ length: 5 }).map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
@@ -709,3 +682,4 @@ function featuredToProperty(p: FeaturedProperty): Property {
     amenities: [],
   };
 }
+function HeroFeaturedCard({property:p}:{property?:Property}){if(!p)return <div className="glass-dark rounded-2xl p-6 text-white/50 text-sm">Featured property will appear here.</div>;return <Link to="/properties/$slug" params={{slug:p.slug}} className="group block overflow-hidden rounded-2xl border border-white/15 bg-black/45 text-white shadow-2xl backdrop-blur-xl"><div className="relative h-48 overflow-hidden"><ProgressiveImage src={p.image} alt={p.title} width={700} height={430} containerClassName="absolute inset-0" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"/><div className="absolute inset-0 bg-gradient-to-t from-noir-deep via-transparent to-transparent"/><span className="absolute left-3 top-3 rounded-md bg-gold px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-noir-deep">Featured</span></div><div className="p-5"><h3 className="font-display text-xl line-clamp-1">{p.title}</h3><div className="mt-2 flex items-center gap-1 text-xs text-white/60"><MapPin className="h-3.5 w-3.5 text-gold"/>{p.location}{p.district?`, ${p.district}`:""}</div><div className="mt-4 flex items-end justify-between gap-3"><div className="font-display text-lg">{p.show_price&&p.price?`${p.currency} ${Number(p.price).toLocaleString()}`:"Price on request"}{p.show_price&&p.price&&p.priceUnit==="month"?<span className="text-xs text-white/50">/mo</span>:null}</div><ArrowUpRight className="h-4 w-4 text-gold"/></div><div className="mt-4 flex gap-3 border-t border-white/10 pt-3 text-[11px] text-white/55">{p.beds!=null&&<span>{p.beds} Beds</span>}{p.baths!=null&&<span>{p.baths} Baths</span>}{p.area>0&&<span>{p.area} m²</span>}</div></div></Link>}

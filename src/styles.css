@@ -273,3 +273,9 @@
 }
 .auth-media-kenburns { animation: nw-auth-kenburns 18s ease-in-out infinite alternate; will-change: transform; }
 @media (prefers-reduced-motion: reduce) { .auth-media-kenburns { animation: none; } }
+
+/* V1.1 cinematic public forms */
+.glass-dark .input-luxe { background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:12px; }
+.glass-dark .input-luxe::placeholder { color:rgba(255,255,255,.4); }
+.glass-dark .input-luxe:focus { outline:2px solid rgba(212,175,115,.45);outline-offset:1px; }
+.glass-dark select.input-luxe option { background:#192025;color:#fff; }

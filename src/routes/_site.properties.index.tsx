@@ -5,7 +5,7 @@ import { CATEGORY_META, type Property, type PropertyCategory } from "@/lib/prope
 import { fetchActiveProperties } from "@/lib/properties-public";
 import { PropertyCard } from "@/components/site/PropertyCard";
 
-type PropSearch = { category?: PropertyCategory; listing?: "sale" | "rent"; status?: "available" | "sold"; city?: string; query?: string; minPrice?: string; maxPrice?: string };
+type PropSearch = { category?: PropertyCategory; listing?: "sale" | "rent"; status?: "available" | "sold"; city?: string; query?: string };
 
 export const Route = createFileRoute("/_site/properties/")({
   validateSearch: (s: Record<string, unknown>): PropSearch => ({
@@ -14,13 +14,13 @@ export const Route = createFileRoute("/_site/properties/")({
     status: s.status === "available" || s.status === "sold" ? s.status : undefined,
     city: typeof s.city==="string" ? s.city : undefined,
     query: typeof s.query==="string" ? s.query : undefined,
-    minPrice: typeof s.minPrice==="string" ? s.minPrice : undefined,
-    maxPrice: typeof s.maxPrice==="string" ? s.maxPrice : undefined,
   }),
   head: () => ({
     meta: [
       { title: "Browse Properties — NOVAWORKS" },
       { name: "description", content: "Browse premium apartments, villas, offices, lands and luxury residences across Rwanda." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: PropertiesPage,
@@ -32,15 +32,13 @@ const CAT_ICONS: Record<PropertyCategory, any> = {
 };
 
 function PropertiesPage() {
-  const { category, listing, status, city: initialCity, query: initialQuery, minPrice: initialMin, maxPrice: initialMax } = Route.useSearch() as PropSearch;
+  const { category, listing, status, city: initialCity, query: initialQuery } = Route.useSearch() as PropSearch;
   const navigate = Route.useNavigate();
   const [query, setQuery] = useState(initialQuery ?? "");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [city, setCity] = useState(initialCity ?? "");
-  const [minPrice, setMinPrice] = useState(initialMin ?? "");
-  const [maxPrice, setMaxPrice] = useState(initialMax ?? "");
   const [minBedrooms, setMinBedrooms] = useState("");
-  const [sort, setSort] = useState<"newest" | "price-asc" | "price-desc">("newest");
+  const [sort, setSort] = useState<"newest">("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [dbProps, setDbProps] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,25 +53,22 @@ function PropertiesPage() {
     if (status && p.status !== status) return false;
     if (query && !`${p.title} ${p.location}`.toLowerCase().includes(query.toLowerCase())) return false;
     if (city && !(p.location || "").toLowerCase().includes(city.toLowerCase())) return false;
-    if (minPrice && Number(p.price || 0) < Number(minPrice)) return false;
-    if (maxPrice && Number(p.price || 0) > Number(maxPrice)) return false;
     if (minBedrooms && Number(p.beds || 0) < Number(minBedrooms)) return false;
     return true;
   }).sort((a, b) => {
-    if (sort === "price-asc") return Number(a.price || 0) - Number(b.price || 0);
-    if (sort === "price-desc") return Number(b.price || 0) - Number(a.price || 0);
     return 0;
   });
 
-  const advancedFilterCount = [city, minPrice, maxPrice, minBedrooms].filter(Boolean).length;
+  const advancedFilterCount = [city, minBedrooms].filter(Boolean).length;
 
   const headerMeta = category ? CATEGORY_META[category as PropertyCategory] : { plural: "All Properties", description: "Discover the full NOVAWORKS portfolio" };
 
   return (
     <div>
       {/* Page hero */}
-      <section className="bg-noir-deep text-white py-16 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "24px 24px" }} />
+      <section className="bg-noir-deep text-white pt-20 pb-28 relative overflow-hidden">
+        {dbProps[0]?.image && <img src={dbProps[0].image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-30"/>}
+        <div className="absolute inset-0 bg-gradient-to-r from-noir-deep via-noir-deep/90 to-noir-deep/60"/>
         <div className="container-luxe relative">
           <div className="text-xs text-white/50 mb-6">
             <Link to="/" className="hover:text-gold">Home</Link>
@@ -115,25 +110,23 @@ function PropertiesPage() {
       </section>
 
       {/* Search/filter bar */}
-      <section className="border-b border-border bg-background sticky top-[88px] z-30">
-        <div className="container-luxe py-4 flex items-center gap-3 flex-wrap">
-          <div className="flex-1 flex items-center gap-2 bg-muted rounded-md px-4 py-2.5 min-w-[260px]">
+      <section className="relative -mt-16 z-30">
+        <div className="container-luxe rounded-2xl cinematic-surface p-4 flex items-center gap-3 flex-wrap text-white shadow-2xl">
+          <div className="flex-1 flex items-center gap-2 cinematic-field rounded-xl px-4 py-2.5 min-w-[260px]">
             <Search className="w-4 h-4 text-muted-foreground" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, location..."
-              className="bg-transparent outline-none text-sm flex-1"
+              className="bg-transparent outline-none text-sm flex-1 text-white placeholder:text-white/40"
             />
           </div>
           <button onClick={() => setShowFilters((v) => !v)} className="inline-flex items-center gap-2 bg-card border border-border rounded-md px-4 py-2.5 text-sm hover:border-gold/50">
             <SlidersHorizontal className="w-4 h-4" /> Filters
             {advancedFilterCount > 0 && <span className="bg-gold text-noir-deep text-xs font-semibold px-1.5 rounded">{advancedFilterCount}</span>}
           </button>
-          <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="bg-card border border-border rounded-md px-3 py-2.5 text-sm">
+          <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="glass border border-white/15 rounded-xl px-3 py-2.5 text-sm text-white">
             <option value="newest">Newest First</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
           </select>
           <div className="flex border border-border rounded-md overflow-hidden">
             <button onClick={() => setView("grid")} className={`p-2.5 ${view === "grid" ? "bg-noir-deep text-white" : "bg-card text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
@@ -141,12 +134,10 @@ function PropertiesPage() {
           </div>
         </div>
         {showFilters && (
-          <div className="container-luxe pb-4 grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="container-luxe pb-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City / district" className="bg-card border border-border rounded-md px-3 py-2.5 text-sm outline-none" />
-            <input value={minPrice} onChange={(e) => setMinPrice(e.target.value)} type="number" min="0" placeholder="Min price" className="bg-card border border-border rounded-md px-3 py-2.5 text-sm outline-none" />
-            <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} type="number" min="0" placeholder="Max price" className="bg-card border border-border rounded-md px-3 py-2.5 text-sm outline-none" />
             <input value={minBedrooms} onChange={(e) => setMinBedrooms(e.target.value)} type="number" min="0" placeholder="Min bedrooms" className="bg-card border border-border rounded-md px-3 py-2.5 text-sm outline-none" />
-            <button onClick={() => { setCity(""); setMinPrice(""); setMaxPrice(""); setMinBedrooms(""); }} className="bg-muted border border-border rounded-md px-3 py-2.5 text-sm hover:border-gold/50">Clear filters</button>
+            <button onClick={() => { setCity(""); setMinBedrooms(""); }} className="bg-muted border border-border rounded-md px-3 py-2.5 text-sm hover:border-gold/50">Clear filters</button>
           </div>
         )}
         {category && (

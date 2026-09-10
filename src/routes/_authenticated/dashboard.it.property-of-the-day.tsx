@@ -105,7 +105,7 @@ function Page() {
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-sm font-display text-noir">
                     {p.currency === "RWF" ? "RWF" : "$"}
-                    {p.price.toLocaleString()}
+                    {p.price != null && Number(p.price) > 0 ? Number(p.price).toLocaleString() : "Price on request"}
                   </span>
                   {saving === p.id ? (
                     <span className="text-xs text-noir/60">Saving…</span>

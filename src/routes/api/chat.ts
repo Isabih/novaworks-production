@@ -3,6 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 const SYSTEM = `You are NOVA AI, the official NOVAWORKS assistant. Be concise, professional, warm, and reply in the user's language (English, Kinyarwanda or French).
 
 CRITICAL DATA RULES:
+- The only authoritative NOVAWORKS public phone, email and address are in BUSINESS_CONTEXT.contact. Never invent or use remembered contact details.
+- If a contact field is missing, say it is not currently confirmed and direct visitors to https://novaworks.rw/contact.
+- Never invent company statistics, years of experience, property counts, reviews or prices. Use only verified context values.
+- A hidden or missing property price is not zero and must not be inferred. Direct pricing inquiries to the team.
 - BUSINESS_CONTEXT is live NOVAWORKS data already permission-filtered for the authenticated user.
 - When asked about a stay, payment, service request, visit, apartment, extension or owner balance, answer ONLY from BUSINESS_CONTEXT.
 - Never invent a status, price, payment, staff assignment, completion, date, or guarantee.
@@ -18,6 +22,11 @@ function outputText(j: any) { if (typeof j?.output_text === "string" && j.output
 
 function basicNovaFallback(context: any, messages: ChatMessage[]) {
   const question = contentText([...messages].reverse().find((m) => m.role === "user")?.content).toLowerCase();
+  if (/contact|phone|telephone|call|email|e-mail|number|address|whatsapp|hamagara|telefoni|imeri/i.test(question)) {
+    const c=context?.contact||{};
+    const details=[c.phone?`Phone: ${c.phone}`:null,c.email?`Email: ${c.email}`:null,c.address?`Address: ${c.address}`:null].filter(Boolean);
+    return details.length?`NOVAWORKS contact details: ${details.join("; ")}. You can also visit https://novaworks.rw/contact.`:"I cannot confirm our current contact details right now. Please visit https://novaworks.rw/contact.";
+  }
   if (!context?.authenticated) {
     return "NOVA is running in basic mode right now. I can still help you browse NOVAWORKS properties, explain Luxury Access, visits, bookings, and how to contact our team. For a personalized account status, please sign in.";
   }
@@ -112,15 +121,15 @@ export const Route = createFileRoute("/api/chat")({
             if (response.status === 401) return new Response("OpenAI rejected the API key. Check OPENAI_API_KEY.", { status: 502 });
             if (response.status === 429 && ollamaBase) { const local=await callOllama(ollamaBase,ollamaModel,instructions,body.messages); if(local.response.ok&&local.text)return new Response(local.text,{headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store","X-NOVA-Provider":"ollama"}}); }
             if (response.status === 429) return new Response(basicNovaFallback(context, body.messages), { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-NOVA-Provider": "basic" } });
-            return new Response(`NOVA AI provider error: ${message}`, { status: 502 });
+            return new Response(basicNovaFallback(context, body.messages), { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-NOVA-Provider": "basic" } });
           }
 
           const text = outputText(json);
-          if (!text) return new Response("OpenAI returned no text", { status: 502 });
+          if (!text) return new Response(basicNovaFallback(context, body.messages), { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-NOVA-Provider": "basic" } });
           return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
         } catch (e: any) {
           console.error("[NOVA AI]", e);
-          return new Response(e?.message || "NOVA AI request failed", { status: 500 });
+          return new Response("NOVA is temporarily unavailable. Please use https://novaworks.rw/contact for assistance.", { status: 503 });
         }
       },
     },

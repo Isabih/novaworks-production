@@ -143,7 +143,7 @@ function PropertiesList() {
                       <td className="py-3 pr-4 text-noir/70">{p.views_count ?? 0}</td>
                       <td className="py-3 flex items-center gap-2">
                         <Link to="/properties/$slug" params={{ slug: p.slug }} className="p-1.5 rounded hover:bg-noir/5" title="View"><Eye className="h-4 w-4" /></Link><Link to="/dashboard/properties/$propertyId/units" params={{propertyId:p.id}} className="p-1.5 rounded hover:bg-noir/5" title="Manage units"><Boxes className="h-4 w-4"/></Link>
-                        <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-rose-50 text-rose-500" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                        <Link to="/dashboard/properties/$propertyId/edit" params={{propertyId:p.id}} className="p-1.5 rounded hover:bg-noir/5" title="Edit property"><Pencil className="h-4 w-4"/></Link><button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-rose-50 text-rose-500" title="Delete"><Trash2 className="h-4 w-4" /></button>
                       </td>
                     </tr>
                   );

@@ -213,12 +213,12 @@ export function MediaInput({
           </div>
         )}
       </div>
-      <div className="flex gap-2">
+      <div className="flex min-w-0 flex-wrap gap-2">
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Image URL or upload below"
-          className="flex-1 bg-noir/5 rounded px-3 py-2 text-sm"
+          className="min-w-0 flex-[1_1_180px] bg-noir/5 rounded px-3 py-2 text-sm"
         />
         <input
           ref={inputRef}
@@ -235,10 +235,10 @@ export function MediaInput({
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-noir text-white text-xs font-medium hover:bg-noir-deep disabled:opacity-50"
+          className="inline-flex max-w-full shrink-0 items-center justify-center gap-1.5 px-3 py-2 rounded bg-noir text-white text-xs font-medium hover:bg-noir-deep disabled:opacity-50"
         >
-          {value ? <Replace className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
-          {value ? "Replace" : "Upload"}
+          {value ? <Replace className="w-3.5 h-3.5 shrink-0" /> : <Upload className="w-3.5 h-3.5 shrink-0" />}
+          <span className="truncate">{value ? "Replace" : "Upload"}</span>
         </button>
       </div>
     </div>

@@ -20,6 +20,8 @@ export const Route = createFileRoute("/api/public/home")({
   server: { handlers: { GET: async () => {
     try {
       const { queryRows } = await import("@/lib/mysql.server");
+      const { getPublicStats } = await import("@/lib/public-stats.server");
+      const stats = await getPublicStats();
       const settingsRows = await queryRows<any[]>("SELECT * FROM app_settings WHERE id=1");
       const s = settingsRows[0];
       const home = s ? {
@@ -42,7 +44,7 @@ export const Route = createFileRoute("/api/public/home")({
         const filter = cols.length ? "AND p.featured=1" : "";
         featured = await queryRows<any[]>(`SELECT p.*, (SELECT url FROM property_images i WHERE i.property_id=p.id ORDER BY i.is_cover DESC,i.position ASC LIMIT 1) image FROM properties p WHERE p.status='active' ${filter} ORDER BY p.updated_at DESC LIMIT 8`);
       }
-      featured = featured.map((p) => ({ ...p, price: Number(p.price), cover: p.image ?? null }));
+      featured = featured.map((p) => ({ ...p, price: p.show_price && Number(p.price)>0 ? Number(p.price) : null, show_price:!!p.show_price, cover: p.image ?? null }));
 
       let pod: any = null;
       const podRows = await queryRows<any[]>("SELECT p.* FROM property_of_the_day d JOIN properties p ON p.id=d.property_id WHERE d.id=1");
@@ -50,13 +52,13 @@ export const Route = createFileRoute("/api/public/home")({
       if (p) {
         const coverRows = await queryRows<any[]>("SELECT url FROM property_images WHERE property_id=? ORDER BY is_cover DESC,position LIMIT 1", [p.id]);
         pod = { id:p.id, slug:p.slug, title:p.title, description:p.description, city:p.city, district:p.district,
-          bedrooms:p.bedrooms, bathrooms:p.bathrooms, area_sqm:p.area_sqm, price:Number(p.price)||0,
+          bedrooms:p.bedrooms, bathrooms:p.bathrooms, area_sqm:p.area_sqm, price:p.show_price&&Number(p.price)>0?Number(p.price):null,show_price:!!p.show_price,
           currency:p.currency, listing_type:p.listing_type, amenities:parseJson(p.amenities_json,[]), cover:coverRows[0]?.url||null };
       }
-      return Response.json({ home, featured, pod });
+      return Response.json({ home, featured, pod, stats });
     } catch (error) {
       console.error("[api/public/home]", error);
-      return Response.json({ home: FALLBACK_HOME, featured: [], pod: null });
+      return Response.json({ home: FALLBACK_HOME, featured: [], pod: null, stats: null });
     }
   } } },
 });

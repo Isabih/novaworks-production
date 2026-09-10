@@ -1,0 +1,21 @@
+[Unit]
+Description=NOVAWORKS listing email outbox and 24-hour follow-up
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=novaworks
+WorkingDirectory=/opt/web-runtime
+EnvironmentFile=/opt/web-runtime/.env
+ExecStart=/usr/bin/node scripts/listing-mail-worker.mjs
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/web-runtime
+
+[Install]
+WantedBy=multi-user.target

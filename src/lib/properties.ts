@@ -71,8 +71,10 @@ export interface Property {
   status: PropertyStatus;
   luxury: boolean;
   featured?: boolean;
-  price: number;
-  currency: "USD" | "RWF";
+  price: number | null;
+  show_price?: boolean;
+  priceOnRequest?: boolean;
+  currency: "USD" | "RWF" | "EUR";
   priceUnit?: "month" | "total";
   location: string;
   district: string;
@@ -262,6 +264,7 @@ export const properties: Property[] = [
 ];
 
 export function formatPrice(p: Property) {
+  if (p.price == null || Number(p.price) <= 0 || p.show_price === false) return "Price on request";
   const v = new Intl.NumberFormat("en-US").format(p.price);
   const sym = p.currency === "USD" ? "$" : "RWF ";
   const suffix = p.priceUnit === "month" ? " / mo" : "";

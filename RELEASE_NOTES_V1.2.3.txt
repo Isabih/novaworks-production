@@ -1,0 +1,10 @@
+NOVAWORKS V1.2.3
+- Property details hero restored to the Lovable cinematic/glass composition.
+- Public price block removed from property details.
+- One clear property-viewing workflow: Schedule a Visit.
+- Removed duplicate booking/viewing CTA from public property details.
+- Unit cards now route to Schedule a Visit for the selected unit.
+- Guided Tour reduced to a compact presentation card with visible close control.
+- NOVA Guide example remains visible in the compact tour.
+- Tour transitions and progress remain animated.
+- Includes V1.2.2 media-upload and V1.2.1 nullable-price fixes.

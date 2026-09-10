@@ -29,7 +29,7 @@ function AddStaff() {
   const [saving, setSaving] = useState(false);
   const [lastCreated, setLastCreated] = useState<{ email: string; role: string } | null>(null);
   const [pending, setPending] = useState<{ id: string; email: string } | null>(null);
-  const allowedRoles = isIT ? ["it", "admin", "owner", "agent", "receptionist"] : ["owner", "agent", "receptionist"];
+  const allowedRoles = isIT ? ["it", "admin", "owner", "agent", "receptionist"] : ["admin", "owner", "agent", "receptionist"];
   const businessRequired = form.role === "admin" || form.role === "it";
   const passwordOk = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{9,}$/.test(form.password);
 
@@ -46,7 +46,7 @@ function AddStaff() {
     finally { setSaving(false); }
   };
 
-  return <DashboardShell title="Add Staff Member" subtitle={isIT ? "Create IT, admins, owners, agents or receptionists" : "Create owners, agents, or receptionists"} role={shell.role} nav={shell.nav}>
+  return <DashboardShell title="Add Staff Member" subtitle={isIT ? "Create IT, admins, owners, agents or receptionists" : "Create administrators, owners, agents or receptionists"} role={shell.role} nav={shell.nav}>
     {pending && <StaffOtpModal email={pending.email} onClose={() => setPending(null)} onResend={async () => { await resend({ data: { pending_id: pending.id } }); }} onSubmit={async (code: string) => {
       const res = await verify({ data: { pending_id: pending.id, code } });
       setLastCreated({ email: res.email, role: res.role });

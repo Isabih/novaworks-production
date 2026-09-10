@@ -1,0 +1,26 @@
+NOVAWORKS V1.2 — SOURCE RELEASE
+Date: 2026-09-10
+
+Included:
+- V1.1 property edit, optional/public price controls, Admin permissions, listing review workflow, staff contact fields, factual stats, NOVA contact grounding, and MySQL/glass login work.
+- Latest Lovable-inspired hero layout direction: category sidebar, featured property card, glass overlapping search area, real database counters.
+- Updated property type/browse presentation and cinematic property details while keeping public price hidden where configured.
+- Popup advertising system using MySQL app_settings.popup_settings.
+- Separate inside-hero and outside-site popup modes.
+- Popup position/timing/property selection controls for Admin and IT.
+- Popup preview panel on the left of the editor.
+- Optional image URL or YouTube/direct MP4/WebM video media per selected popup property.
+- Compact guided-tour modal with clearly visible close button and NOVA guide example panel.
+- Subscriber welcome email explaining future property/news alerts.
+- New-property email alerts restricted to opted-in subscribers and respecting price visibility.
+
+Database:
+- Run mysql/migrations/2026-09-10-v1-2.sql once, after a verified backup.
+- If V1.1 migration was never applied, apply V1.1 first, then V1.2.
+
+Validation performed:
+- TypeScript/TSX syntax parser pass: 220 files, 0 syntax errors.
+- Full npm dependency install / production Vite build was NOT completed in this sandbox.
+- Test on staging/local before replacing the live production deployment.
+
+No production .env credentials or live database contents are included.

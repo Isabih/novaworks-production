@@ -102,7 +102,7 @@ function ContactEditPage() {
   };
   const addMember = () => setContent({
     ...content,
-    team: [...content.team, { name: "New member", role: "Role", image: "" }],
+    team: [...content.team, { name: "New member", role: "Role", image: "", email: "", phone: "" }],
   });
   const removeMember = (i: number) => {
     setContent({ ...content, team: content.team.filter((_, idx) => idx !== i) });
@@ -171,11 +171,13 @@ function ContactEditPage() {
         >
           <div className="space-y-4">
             {content.team.map((m, i) => (
-              <div key={i} className="grid sm:grid-cols-[140px_1fr_auto] gap-3 items-start border border-noir/10 rounded-lg p-3">
+              <div key={i} className="grid sm:grid-cols-[170px_minmax(0,1fr)_auto] gap-3 items-start border border-noir/10 rounded-lg p-3">
                 <MediaInput value={m.image} onChange={(url) => setMember(i, { image: url })} subdir="contact/team" aspect="aspect-square" />
                 <div className="space-y-2">
                   <Field label="Name"><input className="input-luxe" value={m.name} onChange={(e) => setMember(i, { name: e.target.value })} /></Field>
                   <Field label="Role"><input className="input-luxe" value={m.role} onChange={(e) => setMember(i, { role: e.target.value })} /></Field>
+                  <Field label="Public email (optional)"><input type="email" className="input-luxe" value={m.email||""} onChange={e=>setMember(i,{email:e.target.value})}/></Field>
+                  <Field label="Public phone (optional)"><input type="tel" className="input-luxe" value={m.phone||""} onChange={e=>setMember(i,{phone:e.target.value})}/></Field>
                 </div>
                 <div className="flex sm:flex-col gap-1 text-xs">
                   <button onClick={() => moveMember(i, -1)} disabled={i === 0} className="px-2 py-1 rounded border disabled:opacity-30">↑</button>
@@ -315,7 +317,7 @@ function ContactPreview({ content }: { content: ContactContent }) {
             {team.map((m, i) => (
               <div key={i} className="bg-card border border-gold/20 rounded-lg p-3 text-center">
                 {m.image ? (
-                  <img src={m.image} alt={m.name} className="w-16 h-16 mx-auto rounded-full object-cover ring-2 ring-gold/30" />
+                  <img src={m.image} alt={m.name} className="w-16 h-16 mx-auto rounded-full object-contain object-top bg-noir/5 ring-2 ring-gold/30" />
                 ) : (
                   <div className="w-16 h-16 mx-auto rounded-full bg-noir/10 grid place-items-center text-[10px] text-noir/40">No img</div>
                 )}

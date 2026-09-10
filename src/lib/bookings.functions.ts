@@ -103,8 +103,9 @@ export const createBooking = createServerFn({ method: "POST" })
     const end = new Date(data.check_out);
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) throw new Error("Choose valid stay dates");
     const nights = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
-    const rate = Number(data.nightly_rate ?? apt?.monthly_price ?? p.price ?? 0);
-    const amount = Number(data.amount ?? rate * nights);
+    const rate = Number(apt?.monthly_price || p.price || 0);
+    if (!Number.isFinite(rate) || rate <= 0) throw new Error("A booking rate has not been configured. Please contact NOVAWORKS for a quote.");
+    const amount = rate * nights;
     const method = String(data.payment_method || "momo");
     const email = String(data.email || context.user.email || "").trim().toLowerCase();
 

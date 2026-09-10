@@ -1,118 +1,86 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Upload, Camera, FileText, CheckCircle2, ArrowRight } from "lucide-react";
-import { CATEGORY_META, type PropertyCategory } from "@/lib/properties";
+import {createFileRoute,Link} from "@tanstack/react-router";
+import {useEffect,useState} from "react";
+import {Upload,Camera,CheckCircle2,ArrowRight,Mail,Phone,ShieldCheck,Clock3,X} from "lucide-react";
+import {CATEGORY_META,type PropertyCategory} from "@/lib/properties";
+import {getContactContent,type ContactInfo} from "@/lib/contact-content.functions";
+import {useServerFn} from "@tanstack/react-start";
 
-export const Route = createFileRoute("/_site/list-property")({
-  head: () => ({
-    meta: [
-      { title: "List Your Property — NOVAWORKS" },
-      { name: "description", content: "Partner with NOVAWORKS to list and market your property to vetted, qualified buyers and tenants." },
-    ],
-  }),
-  component: ListPage,
+export const Route=createFileRoute("/_site/list-property")({
+ head:()=>({meta:[{title:"List Your Property — NOVAWORKS"},{name:"description",content:"Submit your property for professional NOVAWORKS review."}]}),
+ component:ListPage
 });
-
-function ListPage() {
-  return (
-    <div>
-      <section className="bg-noir-deep text-white py-20">
-        <div className="container-luxe max-w-3xl">
-          <div className="text-xs uppercase tracking-[0.2em] text-gold">For Owners</div>
-          <h1 className="mt-4 font-display text-5xl md:text-6xl">List your property with NOVAWORKS.</h1>
-          <p className="mt-4 text-white/60">We market discreetly, qualify rigorously and close confidently — for owners who value their time and their asset.</p>
-        </div>
-      </section>
-
-      <section className="py-20">
-        <div className="container-luxe grid lg:grid-cols-[1.2fr_1fr] gap-12">
-          <form className="bg-card border border-border rounded-2xl p-8 space-y-6">
-            <div className="font-display text-2xl">Tell us about your property</div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Field label="Owner full name" placeholder="John Doe" />
-              <Field label="Email" type="email" placeholder="you@example.com" />
-              <Field label="Phone" type="tel" placeholder="+250 …" />
-              <Select label="Category">
-                {(Object.keys(CATEGORY_META) as PropertyCategory[]).map((c) => (
-                  <option key={c}>{CATEGORY_META[c].label}</option>
-                ))}
-              </Select>
-              <Field label="Location" placeholder="Kimihurura" />
-              <Field label="District" placeholder="Gasabo" />
-              <Field label="Asking price (USD)" type="number" placeholder="850000" />
-              <Select label="Listing type"><option>For Sale</option><option>For Rent</option></Select>
-              <Field label="Bedrooms" type="number" placeholder="4" />
-              <Field label="Bathrooms" type="number" placeholder="3" />
-              <Field label="Area (m²)" type="number" placeholder="320" />
-              <Field label="Year built" type="number" placeholder="2022" />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-muted-foreground">Description</label>
-              <textarea rows={4} className="bg-muted rounded-md px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gold/30" placeholder="Describe the property's standout features..." />
-            </div>
-
-            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-gold/50 transition-colors cursor-pointer">
-              <Camera className="w-8 h-8 mx-auto text-gold" />
-              <div className="mt-3 font-medium">Upload property images</div>
-              <div className="text-xs text-muted-foreground mt-1">Drag & drop or click — JPG/PNG up to 10MB each</div>
-              <button type="button" className="mt-4 inline-flex items-center gap-2 bg-muted px-4 py-2 rounded-md text-sm">
-                <Upload className="w-4 h-4" /> Select files
-              </button>
-            </div>
-
-            <Field label="Video tour URL (optional)" placeholder="https://youtube.com/..." />
-
-            <button className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-gold-soft to-gold text-noir-deep px-6 py-3.5 rounded-md font-medium">
-              Submit Listing <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-
-          <div className="lg:sticky lg:top-28 self-start space-y-4">
-            <div className="bg-noir-deep text-white p-8 rounded-2xl">
-              <div className="font-display text-2xl">Why list with us?</div>
-              <ul className="mt-5 space-y-3 text-sm">
-                {[
-                  "Marketed to a vetted client list of HNW buyers and tenants",
-                  "Professional photography and 3D tours included",
-                  "Discreet, off-market option available",
-                  "Transparent commission and reporting",
-                  "Dedicated NOVAWORKS account manager",
-                ].map((b) => (
-                  <li key={b} className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-gold shrink-0 mt-0.5" /> <span className="text-white/80">{b}</span></li>
-                ))}
-              </ul>
-            </div>
-            <div className="bg-card border border-border p-6 rounded-2xl">
-              <FileText className="w-6 h-6 text-gold" />
-              <div className="mt-3 font-display text-xl">What happens next?</div>
-              <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li><span className="text-foreground font-medium">1.</span> Our team reviews your submission within 24 hours.</li>
-                <li><span className="text-foreground font-medium">2.</span> We schedule an inspection and photography visit.</li>
-                <li><span className="text-foreground font-medium">3.</span> Your listing goes live and starts reaching buyers.</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
+const initial={full_name:"",email:"",phone:"",title:"",property_type:"apartment",listing_type:"sale",location:"",district:"",description:"",price:"",currency:"USD",show_price:false,bedrooms:"",bathrooms:"",area_sqm:"",year_built:"",video_url:""};
+function ListPage(){
+ const [form,setForm]=useState(initial);
+ const [files,setFiles]=useState<File[]>([]);
+ const [sending,setSending]=useState(false);
+ const [error,setError]=useState("");
+ const [success,setSuccess]=useState<{reference:string;message:string}|null>(null);
+ const [contact,setContact]=useState<Partial<ContactInfo>>({});
+ const loadContact=useServerFn(getContactContent);
+ useEffect(()=>{loadContact().then(c=>setContact(c.info)).catch(()=>{})},[loadContact]);
+ const set=(k:keyof typeof initial,v:any)=>setForm(f=>({...f,[k]:v}));
+ const field=(k:keyof typeof initial)=>(e:React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement>)=>set(k,e.target.value);
+ const addFiles=(list:FileList|null)=>{
+  if(!list)return;
+  const next=[...files,...Array.from(list)];
+  if(next.length>8){setError("You can attach a maximum of 8 images.");return}
+  if(next.some(f=>f.size>8*1024*1024)){setError("Each image must be under 8 MB.");return}
+  setFiles(next);setError("");
+ };
+ const submit=async(e:React.FormEvent)=>{
+  e.preventDefault();if(sending)return;
+  setSending(true);setError("");
+  try{
+   const data=new FormData();
+   data.append("details",JSON.stringify({...form,price:form.price||null,bedrooms:form.bedrooms||null,bathrooms:form.bathrooms||null,area_sqm:form.area_sqm||null,year_built:form.year_built||null}));
+   files.forEach(f=>data.append("images",f));
+   const token=typeof window!=="undefined"?localStorage.getItem("novaworks_session"):null;
+   const r=await fetch("/api/public/listing-requests",{method:"POST",headers:token?{Authorization:`Bearer ${token}`}:{},body:data});
+   const d=await r.json();if(!r.ok)throw new Error(d.error||"Unable to submit listing");
+   setSuccess(d);
+  }catch(e:any){setError(e.message||"Submission failed")}finally{setSending(false)}
+ };
+ return <div className="relative min-h-screen bg-noir-deep text-white">
+  <div className="absolute inset-0 h-[760px] overflow-hidden pointer-events-none"><img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=2000&q=85" alt="" className="h-full w-full object-cover"/><div className="absolute inset-0 bg-noir-deep/80"/><div className="absolute inset-0 bg-gradient-to-b from-transparent to-noir-deep"/></div>
+  <div className="relative container-luxe pt-20 pb-24">
+   <div className="mb-12 max-w-3xl"><span className="text-xs tracking-[.25em] uppercase text-gold">For Property Owners</span><h1 className="mt-4 font-display text-5xl md:text-6xl">List your property with NOVAWORKS.</h1><p className="mt-5 max-w-2xl text-white/65 leading-relaxed">Present your property to our experienced team. Submit the details securely, and we will guide you through the next steps.</p></div>
+   {success?<div className="glass-dark max-w-2xl rounded-3xl p-8 md:p-12"><CheckCircle2 className="h-12 w-12 text-gold"/><h2 className="font-display text-3xl mt-5">Your request is received.</h2><p className="mt-4 text-white/70">{success.message}</p><p className="mt-4 text-gold font-medium">Reference: {success.reference}</p><p className="mt-4 text-sm text-white/55">Please keep this reference. The property is not yet published. You will receive an acknowledgement email once it has been delivered by our mail service.</p><Link to="/" className="mt-8 inline-flex items-center gap-2 rounded-full bg-gold text-noir-deep px-6 py-3 font-semibold">Back to home <ArrowRight className="h-4 w-4"/></Link></div>:
+   <div className="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)] gap-8 items-start">
+    <form onSubmit={submit} className="glass-dark rounded-3xl p-6 md:p-10 space-y-7">
+     <div><h2 className="font-display text-3xl">Tell us about your property</h2><p className="text-sm text-white/55 mt-2">Your details are only visible to authorized NOVAWORKS staff.</p></div>
+     {error&&<div role="alert" className="rounded-xl border border-rose-400/40 bg-rose-500/15 p-4 text-sm text-rose-100">{error}</div>}
+     <div className="grid sm:grid-cols-2 gap-4">
+      <Field label="Owner full name" required><input required maxLength={150} autoComplete="name" className="input-luxe" value={form.full_name} onChange={field("full_name")}/></Field>
+      <Field label="Email address" required><input required type="email" autoComplete="email" className="input-luxe" value={form.email} onChange={field("email")}/></Field>
+      <Field label="Phone number" required><input required type="tel" autoComplete="tel" className="input-luxe" placeholder="+250 7XX XXX XXX" value={form.phone} onChange={field("phone")}/></Field>
+      <Field label="Property title" required><input required className="input-luxe" value={form.title} onChange={field("title")}/></Field>
+      <Field label="Category"><select className="input-luxe" value={form.property_type} onChange={field("property_type")}>{(Object.keys(CATEGORY_META) as PropertyCategory[]).map(c=><option key={c} value={c}>{CATEGORY_META[c].label}</option>)}</select></Field>
+      <Field label="Listing type"><select className="input-luxe" value={form.listing_type} onChange={field("listing_type")}><option value="sale">For sale</option><option value="rent">For rent</option></select></Field>
+      <Field label="Location" required><input required className="input-luxe" placeholder="Kimihurura, Kigali" value={form.location} onChange={field("location")}/></Field>
+      <Field label="District"><input className="input-luxe" value={form.district} onChange={field("district")}/></Field>
+      <Field label="Asking price (optional)"><input type="number" min="0" step="0.01" className="input-luxe" value={form.price} onChange={field("price")}/></Field>
+      <Field label="Currency"><select className="input-luxe" value={form.currency} onChange={field("currency")}><option>USD</option><option>RWF</option><option>EUR</option></select></Field>
+      <Field label="Public price visibility" full><select className="input-luxe" value={form.show_price?"yes":"no"} onChange={e=>set("show_price",e.target.value==="yes")}><option value="no">Hide price · Price on request</option><option value="yes">Display price publicly</option></select></Field>
+      <Field label="Bedrooms"><input type="number" min="0" className="input-luxe" value={form.bedrooms} onChange={field("bedrooms")}/></Field>
+      <Field label="Bathrooms"><input type="number" min="0" className="input-luxe" value={form.bathrooms} onChange={field("bathrooms")}/></Field>
+      <Field label="Area (m²)"><input type="number" min="0" step="0.01" className="input-luxe" value={form.area_sqm} onChange={field("area_sqm")}/></Field>
+      <Field label="Year built"><input type="number" min="1800" className="input-luxe" value={form.year_built} onChange={field("year_built")}/></Field>
+      <Field label="Description" full><textarea rows={5} className="input-luxe" value={form.description} onChange={field("description")} placeholder="Describe the property and its distinctive features…"/></Field>
+     </div>
+     <div><div className="text-sm font-medium mb-3">Property photography</div><label className="flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-white/20 p-8 text-center hover:border-gold/50 transition"><Camera className="h-7 w-7 text-gold"/><span className="mt-3 text-sm">Select property images</span><span className="mt-1 text-xs text-white/45">Up to 8 JPEG, PNG or WebP images · 8 MB each</span><input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e=>addFiles(e.target.files)}/></label>
+      {files.length>0&&<div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">{files.map((f,i)=><div key={i} className="relative rounded-lg overflow-hidden bg-white/5"><img src={URL.createObjectURL(f)} alt="" className="h-24 w-full object-contain"/><div className="p-2 text-[10px] truncate">{f.name}</div><button type="button" onClick={()=>setFiles(v=>v.filter((_,j)=>j!==i))} aria-label="Remove image" className="absolute top-1 right-1 rounded-full bg-black/70 p-1"><X className="h-3 w-3"/></button></div>)}</div>}
+     </div>
+     <Field label="Video tour link (optional)"><input type="url" className="input-luxe" placeholder="https://youtube.com/..." value={form.video_url} onChange={field("video_url")}/></Field>
+     <button type="submit" disabled={sending} className="w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-gold-soft to-gold text-noir-deep px-6 py-4 text-sm font-semibold uppercase tracking-wider disabled:opacity-50">{sending?"Submitting securely…":"Submit listing"}<ArrowRight className="h-4 w-4"/></button>
+     <p className="text-xs text-white/45">By submitting, you authorize NOVAWORKS to contact you regarding this property. Your listing will not go live automatically.</p>
+    </form>
+    <aside className="lg:sticky lg:top-28 space-y-5">
+     <div className="glass-dark rounded-3xl p-8"><h3 className="font-display text-3xl">What happens next?</h3><div className="mt-6 space-y-5">{[["01","We receive your request","Your details enter our private review queue."],["02","Our team contacts you","We aim to respond within 24 hours using your submitted contact information."],["03","Inspection & preparation","We verify the property, agree on terms and prepare the listing for publication."]].map(([n,t,d])=><div key={n} className="flex gap-4"><span className="text-gold font-display text-2xl">{n}</span><div><h4 className="font-medium">{t}</h4><p className="text-sm text-white/50 mt-1">{d}</p></div></div>)}</div></div>
+     <div className="glass-dark rounded-3xl p-7"><h3 className="font-display text-2xl">Need assistance?</h3><p className="text-sm text-white/55 mt-2">Speak to our team directly.</p>{contact.email&&<a href={`mailto:${contact.email}`} className="flex items-center gap-3 text-sm mt-5 hover:text-gold"><Mail className="h-4 w-4 text-gold"/>{contact.email}</a>}{contact.phone&&<a href={`tel:${contact.phone.replace(/[^+\d]/g,"")}`} className="flex items-center gap-3 text-sm mt-4 hover:text-gold"><Phone className="h-4 w-4 text-gold"/>{contact.phone}</a>}</div>
+    </aside>
+   </div>}
+  </div>
+ </div>;
 }
-
-function Field({ label, ...rest }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs text-muted-foreground">{label}</label>
-      <input {...rest} className="bg-muted rounded-md px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gold/30" />
-    </div>
-  );
-}
-
-function Select({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs text-muted-foreground">{label}</label>
-      <select className="bg-muted rounded-md px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gold/30">{children}</select>
-    </div>
-  );
-}
+function Field({label,children,required,full}:{label:string;children:React.ReactNode;required?:boolean;full?:boolean}){return <label className={`block ${full?"sm:col-span-2":""}`}><span className="block mb-2 text-[11px] uppercase tracking-widest text-white/60">{label}{required&&" *"}</span>{children}</label>}

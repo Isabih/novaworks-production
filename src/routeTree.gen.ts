@@ -50,16 +50,20 @@ import { Route as ApiAuthMeRouteImport } from './routes/api/auth.me'
 import { Route as ApiAuthOtpRouteImport } from './routes/api/auth.otp'
 import { Route as ApiAuthSignupRouteImport } from './routes/api/auth.signup'
 import { Route as ApiCustomerAccessRouteImport } from './routes/api/customer.access'
+import { Route as ApiListingRequestsManageRouteImport } from './routes/api/listing-requests.manage'
 import { Route as ApiMailInboundRouteImport } from './routes/api/mail.inbound'
 import { Route as ApiNidaVerifyRouteImport } from './routes/api/nida.verify'
 import { Route as ApiPropertiesManageRouteImport } from './routes/api/properties.manage'
 import { Route as ApiPublicCustomerPassRouteImport } from './routes/api/public/customer-pass'
 import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
 import { Route as ApiPublicHomeRouteImport } from './routes/api/public/home'
+import { Route as ApiPublicListingRequestsRouteImport } from './routes/api/public/listing-requests'
 import { Route as ApiPublicPropertiesRouteImport } from './routes/api/public/properties'
 import { Route as ApiPublicPropertyCategoriesRouteImport } from './routes/api/public/property-categories'
 import { Route as AuthenticatedDashboardAdminIndexRouteImport } from './routes/_authenticated/dashboard.admin.index'
 import { Route as AuthenticatedDashboardAdminContactEditRouteImport } from './routes/_authenticated/dashboard.admin.contact-edit'
+import { Route as AuthenticatedDashboardAdminListingRequestsRouteImport } from './routes/_authenticated/dashboard.admin.listing-requests'
+import { Route as AuthenticatedDashboardAdminPopupsRouteImport } from './routes/_authenticated/dashboard.admin.popups'
 import { Route as AuthenticatedDashboardAdminPortfolioRouteImport } from './routes/_authenticated/dashboard.admin.portfolio'
 import { Route as AuthenticatedDashboardAdminPortfolioVideosRouteImport } from './routes/_authenticated/dashboard.admin.portfolio-videos'
 import { Route as AuthenticatedDashboardAdminReportsRouteImport } from './routes/_authenticated/dashboard.admin.reports'
@@ -88,6 +92,7 @@ import { Route as AuthenticatedDashboardPropertiesNewRouteImport } from './route
 import { Route as AuthenticatedDashboardReceptionistIndexRouteImport } from './routes/_authenticated/dashboard.receptionist.index'
 import { Route as AuthenticatedDashboardReceptionistRegisterRouteImport } from './routes/_authenticated/dashboard.receptionist.register'
 import { Route as AuthenticatedDashboardItStaffNewRouteImport } from './routes/_authenticated/dashboard.it.staff.new'
+import { Route as AuthenticatedDashboardPropertiesPropertyIdEditRouteImport } from './routes/_authenticated/dashboard.properties.$propertyId.edit'
 import { Route as AuthenticatedDashboardPropertiesPropertyIdUnitsRouteImport } from './routes/_authenticated/dashboard.properties.$propertyId.units'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -301,6 +306,12 @@ const ApiCustomerAccessRoute = ApiCustomerAccessRouteImport.update({
   path: '/api/customer/access',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiListingRequestsManageRoute =
+  ApiListingRequestsManageRouteImport.update({
+    id: '/api/listing-requests/manage',
+    path: '/api/listing-requests/manage',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMailInboundRoute = ApiMailInboundRouteImport.update({
   id: '/api/mail/inbound',
   path: '/api/mail/inbound',
@@ -332,6 +343,12 @@ const ApiPublicHomeRoute = ApiPublicHomeRouteImport.update({
   path: '/api/public/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicListingRequestsRoute =
+  ApiPublicListingRequestsRouteImport.update({
+    id: '/api/public/listing-requests',
+    path: '/api/public/listing-requests',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPropertiesRoute = ApiPublicPropertiesRouteImport.update({
   id: '/api/public/properties',
   path: '/api/public/properties',
@@ -353,6 +370,18 @@ const AuthenticatedDashboardAdminContactEditRoute =
   AuthenticatedDashboardAdminContactEditRouteImport.update({
     id: '/dashboard/admin/contact-edit',
     path: '/dashboard/admin/contact-edit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardAdminListingRequestsRoute =
+  AuthenticatedDashboardAdminListingRequestsRouteImport.update({
+    id: '/dashboard/admin/listing-requests',
+    path: '/dashboard/admin/listing-requests',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardAdminPopupsRoute =
+  AuthenticatedDashboardAdminPopupsRouteImport.update({
+    id: '/dashboard/admin/popups',
+    path: '/dashboard/admin/popups',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedDashboardAdminPortfolioRoute =
@@ -523,6 +552,12 @@ const AuthenticatedDashboardItStaffNewRoute =
     path: '/dashboard/it/staff/new',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardPropertiesPropertyIdEditRoute =
+  AuthenticatedDashboardPropertiesPropertyIdEditRouteImport.update({
+    id: '/dashboard/properties/$propertyId/edit',
+    path: '/dashboard/properties/$propertyId/edit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardPropertiesPropertyIdUnitsRoute =
   AuthenticatedDashboardPropertiesPropertyIdUnitsRouteImport.update({
     id: '/dashboard/properties/$propertyId/units',
@@ -569,16 +604,20 @@ export interface FileRoutesByFullPath {
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/customer/access': typeof ApiCustomerAccessRoute
+  '/api/listing-requests/manage': typeof ApiListingRequestsManageRoute
   '/api/mail/inbound': typeof ApiMailInboundRoute
   '/api/nida/verify': typeof ApiNidaVerifyRoute
   '/api/properties/manage': typeof ApiPropertiesManageRoute
   '/api/public/customer-pass': typeof ApiPublicCustomerPassRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/home': typeof ApiPublicHomeRoute
+  '/api/public/listing-requests': typeof ApiPublicListingRequestsRoute
   '/api/public/properties': typeof ApiPublicPropertiesRoute
   '/api/public/property-categories': typeof ApiPublicPropertyCategoriesRoute
   '/properties/': typeof SitePropertiesIndexRoute
   '/dashboard/admin/contact-edit': typeof AuthenticatedDashboardAdminContactEditRoute
+  '/dashboard/admin/listing-requests': typeof AuthenticatedDashboardAdminListingRequestsRoute
+  '/dashboard/admin/popups': typeof AuthenticatedDashboardAdminPopupsRoute
   '/dashboard/admin/portfolio': typeof AuthenticatedDashboardAdminPortfolioRoute
   '/dashboard/admin/portfolio-videos': typeof AuthenticatedDashboardAdminPortfolioVideosRoute
   '/dashboard/admin/reports': typeof AuthenticatedDashboardAdminReportsRoute
@@ -608,6 +647,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/properties/': typeof AuthenticatedDashboardPropertiesIndexRoute
   '/dashboard/receptionist/': typeof AuthenticatedDashboardReceptionistIndexRoute
   '/dashboard/it/staff/new': typeof AuthenticatedDashboardItStaffNewRoute
+  '/dashboard/properties/$propertyId/edit': typeof AuthenticatedDashboardPropertiesPropertyIdEditRoute
   '/dashboard/properties/$propertyId/units': typeof AuthenticatedDashboardPropertiesPropertyIdUnitsRoute
 }
 export interface FileRoutesByTo {
@@ -647,16 +687,20 @@ export interface FileRoutesByTo {
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/customer/access': typeof ApiCustomerAccessRoute
+  '/api/listing-requests/manage': typeof ApiListingRequestsManageRoute
   '/api/mail/inbound': typeof ApiMailInboundRoute
   '/api/nida/verify': typeof ApiNidaVerifyRoute
   '/api/properties/manage': typeof ApiPropertiesManageRoute
   '/api/public/customer-pass': typeof ApiPublicCustomerPassRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/home': typeof ApiPublicHomeRoute
+  '/api/public/listing-requests': typeof ApiPublicListingRequestsRoute
   '/api/public/properties': typeof ApiPublicPropertiesRoute
   '/api/public/property-categories': typeof ApiPublicPropertyCategoriesRoute
   '/properties': typeof SitePropertiesIndexRoute
   '/dashboard/admin/contact-edit': typeof AuthenticatedDashboardAdminContactEditRoute
+  '/dashboard/admin/listing-requests': typeof AuthenticatedDashboardAdminListingRequestsRoute
+  '/dashboard/admin/popups': typeof AuthenticatedDashboardAdminPopupsRoute
   '/dashboard/admin/portfolio': typeof AuthenticatedDashboardAdminPortfolioRoute
   '/dashboard/admin/portfolio-videos': typeof AuthenticatedDashboardAdminPortfolioVideosRoute
   '/dashboard/admin/reports': typeof AuthenticatedDashboardAdminReportsRoute
@@ -686,6 +730,7 @@ export interface FileRoutesByTo {
   '/dashboard/properties': typeof AuthenticatedDashboardPropertiesIndexRoute
   '/dashboard/receptionist': typeof AuthenticatedDashboardReceptionistIndexRoute
   '/dashboard/it/staff/new': typeof AuthenticatedDashboardItStaffNewRoute
+  '/dashboard/properties/$propertyId/edit': typeof AuthenticatedDashboardPropertiesPropertyIdEditRoute
   '/dashboard/properties/$propertyId/units': typeof AuthenticatedDashboardPropertiesPropertyIdUnitsRoute
 }
 export interface FileRoutesById {
@@ -730,16 +775,20 @@ export interface FileRoutesById {
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/customer/access': typeof ApiCustomerAccessRoute
+  '/api/listing-requests/manage': typeof ApiListingRequestsManageRoute
   '/api/mail/inbound': typeof ApiMailInboundRoute
   '/api/nida/verify': typeof ApiNidaVerifyRoute
   '/api/properties/manage': typeof ApiPropertiesManageRoute
   '/api/public/customer-pass': typeof ApiPublicCustomerPassRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/home': typeof ApiPublicHomeRoute
+  '/api/public/listing-requests': typeof ApiPublicListingRequestsRoute
   '/api/public/properties': typeof ApiPublicPropertiesRoute
   '/api/public/property-categories': typeof ApiPublicPropertyCategoriesRoute
   '/_site/properties/': typeof SitePropertiesIndexRoute
   '/_authenticated/dashboard/admin/contact-edit': typeof AuthenticatedDashboardAdminContactEditRoute
+  '/_authenticated/dashboard/admin/listing-requests': typeof AuthenticatedDashboardAdminListingRequestsRoute
+  '/_authenticated/dashboard/admin/popups': typeof AuthenticatedDashboardAdminPopupsRoute
   '/_authenticated/dashboard/admin/portfolio': typeof AuthenticatedDashboardAdminPortfolioRoute
   '/_authenticated/dashboard/admin/portfolio-videos': typeof AuthenticatedDashboardAdminPortfolioVideosRoute
   '/_authenticated/dashboard/admin/reports': typeof AuthenticatedDashboardAdminReportsRoute
@@ -769,6 +818,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/properties/': typeof AuthenticatedDashboardPropertiesIndexRoute
   '/_authenticated/dashboard/receptionist/': typeof AuthenticatedDashboardReceptionistIndexRoute
   '/_authenticated/dashboard/it/staff/new': typeof AuthenticatedDashboardItStaffNewRoute
+  '/_authenticated/dashboard/properties/$propertyId/edit': typeof AuthenticatedDashboardPropertiesPropertyIdEditRoute
   '/_authenticated/dashboard/properties/$propertyId/units': typeof AuthenticatedDashboardPropertiesPropertyIdUnitsRoute
 }
 export interface FileRouteTypes {
@@ -812,16 +862,20 @@ export interface FileRouteTypes {
     | '/api/auth/otp'
     | '/api/auth/signup'
     | '/api/customer/access'
+    | '/api/listing-requests/manage'
     | '/api/mail/inbound'
     | '/api/nida/verify'
     | '/api/properties/manage'
     | '/api/public/customer-pass'
     | '/api/public/flutterwave-webhook'
     | '/api/public/home'
+    | '/api/public/listing-requests'
     | '/api/public/properties'
     | '/api/public/property-categories'
     | '/properties/'
     | '/dashboard/admin/contact-edit'
+    | '/dashboard/admin/listing-requests'
+    | '/dashboard/admin/popups'
     | '/dashboard/admin/portfolio'
     | '/dashboard/admin/portfolio-videos'
     | '/dashboard/admin/reports'
@@ -851,6 +905,7 @@ export interface FileRouteTypes {
     | '/dashboard/properties/'
     | '/dashboard/receptionist/'
     | '/dashboard/it/staff/new'
+    | '/dashboard/properties/$propertyId/edit'
     | '/dashboard/properties/$propertyId/units'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -890,16 +945,20 @@ export interface FileRouteTypes {
     | '/api/auth/otp'
     | '/api/auth/signup'
     | '/api/customer/access'
+    | '/api/listing-requests/manage'
     | '/api/mail/inbound'
     | '/api/nida/verify'
     | '/api/properties/manage'
     | '/api/public/customer-pass'
     | '/api/public/flutterwave-webhook'
     | '/api/public/home'
+    | '/api/public/listing-requests'
     | '/api/public/properties'
     | '/api/public/property-categories'
     | '/properties'
     | '/dashboard/admin/contact-edit'
+    | '/dashboard/admin/listing-requests'
+    | '/dashboard/admin/popups'
     | '/dashboard/admin/portfolio'
     | '/dashboard/admin/portfolio-videos'
     | '/dashboard/admin/reports'
@@ -929,6 +988,7 @@ export interface FileRouteTypes {
     | '/dashboard/properties'
     | '/dashboard/receptionist'
     | '/dashboard/it/staff/new'
+    | '/dashboard/properties/$propertyId/edit'
     | '/dashboard/properties/$propertyId/units'
   id:
     | '__root__'
@@ -972,16 +1032,20 @@ export interface FileRouteTypes {
     | '/api/auth/otp'
     | '/api/auth/signup'
     | '/api/customer/access'
+    | '/api/listing-requests/manage'
     | '/api/mail/inbound'
     | '/api/nida/verify'
     | '/api/properties/manage'
     | '/api/public/customer-pass'
     | '/api/public/flutterwave-webhook'
     | '/api/public/home'
+    | '/api/public/listing-requests'
     | '/api/public/properties'
     | '/api/public/property-categories'
     | '/_site/properties/'
     | '/_authenticated/dashboard/admin/contact-edit'
+    | '/_authenticated/dashboard/admin/listing-requests'
+    | '/_authenticated/dashboard/admin/popups'
     | '/_authenticated/dashboard/admin/portfolio'
     | '/_authenticated/dashboard/admin/portfolio-videos'
     | '/_authenticated/dashboard/admin/reports'
@@ -1011,6 +1075,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/properties/'
     | '/_authenticated/dashboard/receptionist/'
     | '/_authenticated/dashboard/it/staff/new'
+    | '/_authenticated/dashboard/properties/$propertyId/edit'
     | '/_authenticated/dashboard/properties/$propertyId/units'
   fileRoutesById: FileRoutesById
 }
@@ -1029,12 +1094,14 @@ export interface RootRouteChildren {
   ApiAuthOtpRoute: typeof ApiAuthOtpRoute
   ApiAuthSignupRoute: typeof ApiAuthSignupRoute
   ApiCustomerAccessRoute: typeof ApiCustomerAccessRoute
+  ApiListingRequestsManageRoute: typeof ApiListingRequestsManageRoute
   ApiMailInboundRoute: typeof ApiMailInboundRoute
   ApiNidaVerifyRoute: typeof ApiNidaVerifyRoute
   ApiPropertiesManageRoute: typeof ApiPropertiesManageRoute
   ApiPublicCustomerPassRoute: typeof ApiPublicCustomerPassRoute
   ApiPublicFlutterwaveWebhookRoute: typeof ApiPublicFlutterwaveWebhookRoute
   ApiPublicHomeRoute: typeof ApiPublicHomeRoute
+  ApiPublicListingRequestsRoute: typeof ApiPublicListingRequestsRoute
   ApiPublicPropertiesRoute: typeof ApiPublicPropertiesRoute
   ApiPublicPropertyCategoriesRoute: typeof ApiPublicPropertyCategoriesRoute
 }
@@ -1328,6 +1395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCustomerAccessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/listing-requests/manage': {
+      id: '/api/listing-requests/manage'
+      path: '/api/listing-requests/manage'
+      fullPath: '/api/listing-requests/manage'
+      preLoaderRoute: typeof ApiListingRequestsManageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mail/inbound': {
       id: '/api/mail/inbound'
       path: '/api/mail/inbound'
@@ -1370,6 +1444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/listing-requests': {
+      id: '/api/public/listing-requests'
+      path: '/api/public/listing-requests'
+      fullPath: '/api/public/listing-requests'
+      preLoaderRoute: typeof ApiPublicListingRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/properties': {
       id: '/api/public/properties'
       path: '/api/public/properties'
@@ -1396,6 +1477,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/admin/contact-edit'
       fullPath: '/dashboard/admin/contact-edit'
       preLoaderRoute: typeof AuthenticatedDashboardAdminContactEditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard/admin/listing-requests': {
+      id: '/_authenticated/dashboard/admin/listing-requests'
+      path: '/dashboard/admin/listing-requests'
+      fullPath: '/dashboard/admin/listing-requests'
+      preLoaderRoute: typeof AuthenticatedDashboardAdminListingRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard/admin/popups': {
+      id: '/_authenticated/dashboard/admin/popups'
+      path: '/dashboard/admin/popups'
+      fullPath: '/dashboard/admin/popups'
+      preLoaderRoute: typeof AuthenticatedDashboardAdminPopupsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/admin/portfolio': {
@@ -1594,6 +1689,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardItStaffNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboard/properties/$propertyId/edit': {
+      id: '/_authenticated/dashboard/properties/$propertyId/edit'
+      path: '/dashboard/properties/$propertyId/edit'
+      fullPath: '/dashboard/properties/$propertyId/edit'
+      preLoaderRoute: typeof AuthenticatedDashboardPropertiesPropertyIdEditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard/properties/$propertyId/units': {
       id: '/_authenticated/dashboard/properties/$propertyId/units'
       path: '/dashboard/properties/$propertyId/units'
@@ -1653,6 +1755,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardServiceCatalogRoute: typeof AuthenticatedDashboardServiceCatalogRoute
   AuthenticatedDashboardServiceRequestsRoute: typeof AuthenticatedDashboardServiceRequestsRoute
   AuthenticatedDashboardAdminContactEditRoute: typeof AuthenticatedDashboardAdminContactEditRoute
+  AuthenticatedDashboardAdminListingRequestsRoute: typeof AuthenticatedDashboardAdminListingRequestsRoute
+  AuthenticatedDashboardAdminPopupsRoute: typeof AuthenticatedDashboardAdminPopupsRoute
   AuthenticatedDashboardAdminPortfolioRoute: typeof AuthenticatedDashboardAdminPortfolioRoute
   AuthenticatedDashboardAdminPortfolioVideosRoute: typeof AuthenticatedDashboardAdminPortfolioVideosRoute
   AuthenticatedDashboardAdminReportsRoute: typeof AuthenticatedDashboardAdminReportsRoute
@@ -1677,6 +1781,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardItIndexRoute: typeof AuthenticatedDashboardItIndexRoute
   AuthenticatedDashboardPropertiesIndexRoute: typeof AuthenticatedDashboardPropertiesIndexRoute
   AuthenticatedDashboardItStaffNewRoute: typeof AuthenticatedDashboardItStaffNewRoute
+  AuthenticatedDashboardPropertiesPropertyIdEditRoute: typeof AuthenticatedDashboardPropertiesPropertyIdEditRoute
   AuthenticatedDashboardPropertiesPropertyIdUnitsRoute: typeof AuthenticatedDashboardPropertiesPropertyIdUnitsRoute
 }
 
@@ -1696,6 +1801,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedDashboardServiceRequestsRoute,
   AuthenticatedDashboardAdminContactEditRoute:
     AuthenticatedDashboardAdminContactEditRoute,
+  AuthenticatedDashboardAdminListingRequestsRoute:
+    AuthenticatedDashboardAdminListingRequestsRoute,
+  AuthenticatedDashboardAdminPopupsRoute:
+    AuthenticatedDashboardAdminPopupsRoute,
   AuthenticatedDashboardAdminPortfolioRoute:
     AuthenticatedDashboardAdminPortfolioRoute,
   AuthenticatedDashboardAdminPortfolioVideosRoute:
@@ -1737,6 +1846,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardPropertiesIndexRoute:
     AuthenticatedDashboardPropertiesIndexRoute,
   AuthenticatedDashboardItStaffNewRoute: AuthenticatedDashboardItStaffNewRoute,
+  AuthenticatedDashboardPropertiesPropertyIdEditRoute:
+    AuthenticatedDashboardPropertiesPropertyIdEditRoute,
   AuthenticatedDashboardPropertiesPropertyIdUnitsRoute:
     AuthenticatedDashboardPropertiesPropertyIdUnitsRoute,
 }
@@ -1823,12 +1934,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthOtpRoute: ApiAuthOtpRoute,
   ApiAuthSignupRoute: ApiAuthSignupRoute,
   ApiCustomerAccessRoute: ApiCustomerAccessRoute,
+  ApiListingRequestsManageRoute: ApiListingRequestsManageRoute,
   ApiMailInboundRoute: ApiMailInboundRoute,
   ApiNidaVerifyRoute: ApiNidaVerifyRoute,
   ApiPropertiesManageRoute: ApiPropertiesManageRoute,
   ApiPublicCustomerPassRoute: ApiPublicCustomerPassRoute,
   ApiPublicFlutterwaveWebhookRoute: ApiPublicFlutterwaveWebhookRoute,
   ApiPublicHomeRoute: ApiPublicHomeRoute,
+  ApiPublicListingRequestsRoute: ApiPublicListingRequestsRoute,
   ApiPublicPropertiesRoute: ApiPublicPropertiesRoute,
   ApiPublicPropertyCategoriesRoute: ApiPublicPropertyCategoriesRoute,
 }

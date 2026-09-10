@@ -1,4 +1,4 @@
-import { Users, Building2, Home, ShieldCheck, DollarSign, LayoutDashboard, Activity, Settings, FileCheck, BarChart3, UserPlus, Bell, Wrench, Mail, Film, Plus, Server, Image as ImageIcon, Star, Layers, CalendarCheck, Search, Heart, MessageSquare, AlertCircle, CreditCard, ScrollText, FileBarChart, BookOpenCheck, Boxes } from "lucide-react";
+import { ClipboardList, Users, Building2, Home, ShieldCheck, DollarSign, LayoutDashboard, Activity, Settings, FileCheck, BarChart3, UserPlus, Bell, Wrench, Mail, Film, Plus, Server, Image as ImageIcon, Star, Layers, CalendarCheck, Search, Heart, MessageSquare, AlertCircle, CreditCard, ScrollText, FileBarChart, BookOpenCheck, Boxes, Megaphone } from "lucide-react";
 import type { NavItem } from "./DashboardShell";
 import type { AppRole } from "@/lib/use-auth";
 
@@ -8,12 +8,14 @@ export const IT_NAV: NavItem[] = [
   { to: "/dashboard/messages", label: "Mail & Messages", icon: MessageSquare, group: "Overview" },
   { to: "/dashboard/properties", label: "Properties", icon: Building2, group: "Content", feature: "properties" },
   { to: "/dashboard/properties/new", label: "Add Property", icon: Plus, group: "Content", feature: "properties" },
+  { to: "/dashboard/admin/listing-requests", label: "Listing Requests", icon: ClipboardList, group: "Content" },
   { to: "/dashboard/it/media-verify", label: "Media Verification", icon: ShieldCheck, group: "Content" },
   { to: "/dashboard/it/home-content", label: "Homepage Content", icon: ImageIcon, group: "Content" },
   { to: "/dashboard/admin/contact-edit", label: "Who We Are & Contact", icon: Mail, group: "Content" },
   { to: "/dashboard/admin/portfolio", label: "Portfolio Images", icon: ImageIcon, group: "Content", feature: "portfolio" },
   { to: "/dashboard/admin/portfolio-videos", label: "Portfolio Videos", icon: Film, group: "Content", feature: "portfolio" },
   { to: "/dashboard/it/property-of-the-day", label: "Property of the Day", icon: Star, group: "Content" },
+  { to: "/dashboard/admin/popups", label: "Popup Advertising", icon: Megaphone, group: "Content" },
   { to: "/dashboard/it/property-types", label: "Property Types", icon: Layers, group: "Content" },
   { to: "/dashboard/service-requests", label: "Service Requests", icon: Wrench, group: "Operations", feature: "service_requests" },
   { to: "/dashboard/admin/visit-tasks", label: "Visit Tasks", icon: CalendarCheck, group: "Operations", feature: "visit_requests" },
@@ -37,7 +39,6 @@ export const IT_NAV: NavItem[] = [
  * /_authenticated beforeLoad gate.
  */
 export const IT_ONLY_PATHS = [
-  "/dashboard/it/home-content",
   "/dashboard/it/password-resets",
   "/dashboard/it/settings",
   "/dashboard/it/system-health",
@@ -50,8 +51,11 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/dashboard/messages", label: "Mail & Messages", icon: MessageSquare, group: "Overview" },
   { to: "/dashboard/properties", label: "Properties", icon: Building2, group: "Content", feature: "properties" },
   { to: "/dashboard/properties/new", label: "Add Property", icon: Plus, group: "Content", feature: "properties" },
+  { to: "/dashboard/admin/listing-requests", label: "Listing Requests", icon: ClipboardList, group: "Content" },
   { to: "/dashboard/it/media-verify", label: "Media Verification", icon: ShieldCheck, group: "Content" },
+  { to: "/dashboard/it/home-content", label: "Homepage Content", icon: ImageIcon, group: "Content" },
   { to: "/dashboard/it/property-of-the-day", label: "Property of the Day", icon: Star, group: "Content" },
+  { to: "/dashboard/admin/popups", label: "Popup Advertising", icon: Megaphone, group: "Content" },
   { to: "/dashboard/it/property-types", label: "Property Types", icon: Layers, group: "Content" },
   { to: "/dashboard/admin/contact-edit", label: "Who We Are & Contact", icon: Mail, group: "Content" },
   { to: "/dashboard/admin/portfolio", label: "Portfolio Images", icon: ImageIcon, group: "Content", feature: "portfolio" },

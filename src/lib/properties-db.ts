@@ -1,5 +1,5 @@
 import { uploadPropertyMedia } from "./r2-upload";
-export interface DbProperty{id:string;owner_id:string|null;agent_id:string|null;slug:string;title:string;description:string|null;property_type:string;listing_type:string;status:string;price:number;currency:string;bedrooms:number|null;bathrooms:number|null;area_sqm:number|null;address:string|null;city:string|null;district:string|null;country:string|null;lat:number|null;lng:number|null;amenities:string[]|null;featured:boolean;views_count:number;created_at:string;updated_at:string;property_images?:DbPropertyImage[]}
+export interface DbProperty{id:string;show_price?:number|boolean;owner_id:string|null;agent_id:string|null;slug:string;title:string;description:string|null;property_type:string;listing_type:string;status:string;price:number;currency:string;bedrooms:number|null;bathrooms:number|null;area_sqm:number|null;address:string|null;city:string|null;district:string|null;country:string|null;lat:number|null;lng:number|null;amenities:string[]|null;featured:boolean;views_count:number;created_at:string;updated_at:string;property_images?:DbPropertyImage[]}
 export interface DbPropertyImage{id:string;property_id:string;url:string;storage_path:string|null;position:number;is_cover:boolean;section:string}
 export const IMAGE_SECTIONS=[{value:"main",label:"Main / Cover"},{value:"kitchen",label:"Kitchen"},{value:"living_room",label:"Living Room"},{value:"bedroom",label:"Bedroom"},{value:"bathroom",label:"Bathroom"},{value:"gym",label:"Gym"},{value:"other",label:"Other"}] as const;export type ImageSection=typeof IMAGE_SECTIONS[number]["value"];export const SECTION_ORDER:ImageSection[]=["main","kitchen","living_room","bedroom","bathroom","gym","other"];
 export function slugify(input:string){return input.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)+"-"+Math.random().toString(36).slice(2,7)}
@@ -11,3 +11,12 @@ export async function createProperty(input:any){const r=await fetch('/api/proper
 export async function uploadPropertyFile(userId:string,file:File,subdir='files'){const r=await uploadPropertyMedia(userId,file,subdir);return{url:r.url,path:r.path}}
 export async function deleteProperty(id:string){const r=await fetch('/api/properties/manage',{method:'DELETE',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({id})});if(!r.ok)throw new Error('Failed to archive property')}
 export async function setPropertyStatus(id:string,status:string){const r=await fetch('/api/properties/manage',{method:'PUT',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({id,status})});if(!r.ok)throw new Error('Failed to update status')}
+
+export async function fetchPropertyForEdit(id:string):Promise<DbProperty>{
+ const r=await fetch(`/api/properties/manage?id=${encodeURIComponent(id)}`,{headers:auth()});
+ const d=await r.json();if(!r.ok)throw new Error(d.error||"Failed to load property");return d;
+}
+export async function updateProperty(input:any){
+ const r=await fetch("/api/properties/manage",{method:"PUT",headers:{...auth(),"Content-Type":"application/json"},body:JSON.stringify(input)});
+ const d=await r.json();if(!r.ok)throw new Error(d.error||"Failed to update property");return d;
+}
