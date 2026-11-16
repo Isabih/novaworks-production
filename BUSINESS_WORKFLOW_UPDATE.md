@@ -17,3 +17,5 @@ Run `mysql/migrations/2026-08-22-business-workflow.sql` once on an existing data
 
 ## External dependencies
 Real MoMo/card payment requires `FLUTTERWAVE_SECRET_KEY` and Flutterwave merchant configuration. Incoming mail requires Resend Receiving/webhook configuration. These cannot be completed only from source code without provider account configuration.
+
+Final content
