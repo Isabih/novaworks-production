@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { requireMysqlAuth } from "@/integrations/mysql/auth-middleware";
 import { rows, uuid } from "./db-utils.server";
 import { queryRows, withTransaction } from "./mysql.server";
@@ -7,6 +7,7 @@ import { makeOtp, makeToken, hashPassword, verifyPassword, validateStrongPasswor
 import { sendMail } from "./mailer.server";
 
 const digest = (s: string) => createHash("sha256").update(s).digest("hex");
+const otpDigest = (s: string) => { const key=process.env.NOVAWORKS_SECURITY_SECRET; if(!key || key.length<32) throw new Error("NOVAWORKS_SECURITY_SECRET must be configured (32+ characters)"); return createHmac("sha256",key).update(s).digest("hex"); };
 const matches = (a: string, b: string) => {
   const x = Buffer.from(a, "hex"), y = Buffer.from(b, "hex");
   return x.length === y.length && timingSafeEqual(x, y);
@@ -33,7 +34,7 @@ async function begin(user:{id:string;email:string;full_name:string}, type:"forgo
     await conn.execute(`INSERT INTO password_security_requests
       (id,user_id,request_type,email,reason,otp_hash,otp_expires_at,expires_at)
       VALUES(?,?,?,?,?, ?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 5 MINUTE),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))`,
-      [id,user.id,type,user.email,reason,digest(id+":"+otp)]);
+      [id,user.id,type,user.email,reason,otpDigest(id+":"+otp)]);
     await auditTx(conn,user.id,"PASSWORD_REQUEST_CREATED",id,{type});
   });
   // Failure leaves an auditable pending request; user may initiate a fresh request after cooldown.
@@ -75,7 +76,7 @@ export const verifyPasswordResetOtp=createServerFn({method:"POST"})
      if(!r) return;
      requestId=r.id;
      if(r.otp_attempts>=5||new Date(r.otp_expires_at).getTime()<=Date.now()) return;
-     if(!matches(digest(r.id+":"+code),r.otp_hash)){
+     if(!matches(otpDigest(r.id+":"+code),r.otp_hash)){
        await conn.execute("UPDATE password_security_requests SET otp_attempts=otp_attempts+1 WHERE id=?",[r.id]);
        await auditTx(conn,r.user_id,"PASSWORD_OTP_FAILED",r.id);
        return;
