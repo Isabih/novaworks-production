@@ -1,51 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { LockKeyhole, Eye, EyeOff } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { requestPasswordChange, verifyPasswordResetOtp } from "@/lib/password-reset.functions";
 import { toast } from "sonner";
-import { PasswordStrength, isStrongPassword } from "@/components/auth/PasswordStrength";
-
-export const Route = createFileRoute("/auth/change-password")({ head: () => ({ meta: [{ title: "Create new password — NOVAWORKS" }] }), component: Page });
-
-function Page() {
-  const [p1, setP1] = useState("");
-  const [p2, setP2] = useState("");
-  const [show, setShow] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const strong = isStrongPassword(p1);
-  const match = !!p2 && p1 === p2;
-
-  const submit = async () => {
-    if (!strong) return toast.error("Create a strong password first");
-    if (!match) return toast.error("Passwords do not match");
-    setBusy(true);
-    try {
-      const token = localStorage.getItem("novaworks_session");
-      const r = await fetch("/api/auth/change-password", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ new_password: p1 }) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
-      toast.success("Password changed successfully");
-      window.location.href = "/auth/welcome";
-    } catch (e: any) { toast.error(e.message || "Could not change password"); }
-    finally { setBusy(false); }
-  };
-
-  return <main className="min-h-screen bg-[#f7f6f2] grid place-items-center px-4 py-10">
-    <section className="bg-white border border-noir/10 shadow-xl rounded-3xl p-8 max-w-lg w-full">
-      <div className="h-12 w-12 rounded-xl bg-gold/15 grid place-items-center"><LockKeyhole className="h-6 w-6" /></div>
-      <h1 className="font-display text-3xl mt-5">Create a new password</h1>
-      <p className="text-sm text-noir/55 mt-2">Your new password must satisfy every security requirement below.</p>
-      <div className="mt-6">
-        <div className="relative">
-          <input type={show ? "text" : "password"} className={`input-luxe pr-11 transition ${p1 ? (strong ? "!border-emerald-400" : "!border-rose-400") : ""}`} placeholder="New password" value={p1} onChange={e => setP1(e.target.value)} />
-          <button type="button" onClick={() => setShow(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-noir/40">{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-        </div>
-        <PasswordStrength password={p1} />
-      </div>
-      <div className="mt-4">
-        <input type={show ? "text" : "password"} className={`input-luxe transition ${p2 ? (match ? "!border-emerald-400" : "!border-rose-400") : ""}`} placeholder="Confirm password" value={p2} onChange={e => setP2(e.target.value)} />
-        {p2 && <div className={`mt-1.5 text-[11px] font-semibold ${match ? "text-emerald-600" : "text-rose-600"}`}>{match ? "✓ Passwords match" : "Passwords do not match"}</div>}
-      </div>
-      <button onClick={submit} disabled={busy || !strong || !match} className="w-full mt-6 rounded-xl bg-noir-deep text-white py-3 font-semibold disabled:opacity-40">{busy ? "Saving…" : "Save new password"}</button>
-    </section>
-  </main>;
+export const Route=createFileRoute("/auth/change-password")({component:Page});
+function Page(){
+ const request=useServerFn(requestPasswordChange),verify=useServerFn(verifyPasswordResetOtp);
+ const [current,setCurrent]=useState(""),[reason,setReason]=useState(""),[email,setEmail]=useState(""),[code,setCode]=useState(""),[step,setStep]=useState(0),[busy,setBusy]=useState(false);
+ const run=async(fn:()=>Promise<any>,next:number)=>{setBusy(true);try{await fn();setStep(next);toast.success("Request processed")}catch(e:any){toast.error(e.message||"Request failed")}finally{setBusy(false)}};
+ return <main className="max-w-md mx-auto px-6 py-16 space-y-5"><h1 className="font-display text-3xl">Request password change</h1>
+ {step===0&&<><p>Verify your existing password. Your new password will be chosen after IT approval.</p>
+ <input type="password" autoComplete="current-password" className="input-luxe" placeholder="Existing password" value={current} onChange={e=>setCurrent(e.target.value)}/>
+ <textarea className="input-luxe" placeholder="Reason for change" value={reason} onChange={e=>setReason(e.target.value)}/>
+ <button className="w-full bg-noir-deep text-white p-3 rounded" disabled={busy||!current||reason.trim().length<5} onClick={()=>run(()=>request({data:{current_password:current,reason}}),1)}>Send verification email</button></>}
+ {step===1&&<><p>Enter your registered account email and the verification code sent to it.</p>
+ <input className="input-luxe" type="email" placeholder="Registered email" value={email} onChange={e=>setEmail(e.target.value)}/>
+ <input className="input-luxe" inputMode="numeric" maxLength={6} placeholder="Six-digit code" value={code} onChange={e=>setCode(e.target.value)}/>
+ <button className="w-full bg-noir-deep text-white p-3 rounded" disabled={busy||code.length!==6} onClick={()=>run(()=>verify({data:{email,code}}),2)}>Verify email</button></>}
+ {step===2&&<p>Email verified. IT has been notified. When IT approves, you will receive a secure link to set your new password.</p>}
+ <Link to="/auth" className="underline text-sm">Back to sign in</Link></main>;
 }
