@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
 
 export function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -20,7 +20,7 @@ export function validateStrongPassword(password: string) {
 }
 
 export function makeToken(bytes = 32) { return randomBytes(bytes).toString("hex"); }
-export function makeOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
+export function makeOtp() { return String(randomInt(100000, 1000000)); }
 export function makeTemporaryPassword() {
   return `Nova!${randomBytes(6).toString("base64url")}9A`;
 }
