@@ -10,7 +10,7 @@ This work is isolated to `feature/password-security-approval`. Do not deploy bef
 - `SITE_URL`: public HTTPS application origin, used for completion links.
 
 ## Database
-Back up the staging database, then apply `mysql/migrations/2026-11-18-password-security.sql`.
+Back up the staging database, then apply `mysql/migrations/2026-11-18-password-security.sql` followed by `mysql/migrations/2026-11-19-password-notification-outbox.sql`.
 The migration creates a separate `password_security_requests` table and does not alter legacy password-reset rows.
 
 ## Functional sequence
@@ -23,8 +23,8 @@ The migration creates a separate `password_security_requests` table and does not
 7. User sets a new password. Existing sessions are revoked, request is completed, and audit is written transactionally.
 
 ## Known release blockers / follow-up hardening
-- Run `node --test tests/password-security-stage*.test.mjs`, `pnpm lint`, `pnpm build`, and staging MySQL integration tests. Source-level checks are not substitutes.
-- Add a durable transactional notification outbox with retry and delivery tracking. Current email sends happen after the request transaction; failures can leave a request waiting for notification.
+- GitHub Actions now runs Node regression tests, TypeScript, build, and MySQL 8 migration fixture checks. Full staging MySQL integration tests and real email delivery still require a staging environment.
+- The encrypted transactional notification outbox is implemented. Run `node scripts/process-password-notifications.mjs` every minute via systemd timer/cron. Monitor `failed` rows and retry failures after investigation. Confirm the email provider supports the worker idempotency header.
 - Add request/IP/email rate limiting across app instances and periodic expiry/cleanup.
 - Audit all remaining password mutation paths (staff provisioning, forced password changes, administrative operations) before claiming global enforcement.
 - Verify and upgrade the existing generic `/api/auth/otp` endpoint; it is not the new password-security OTP path.
