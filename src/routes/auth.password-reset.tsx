@@ -1,3 +1,31 @@
-import { createFileRoute,Link } from "@tanstack/react-router";import { useState } from "react";import { useServerFn } from "@tanstack/react-start";import { requestPasswordReset } from "@/lib/password-reset.functions";import { toast } from "sonner";
-export const Route=createFileRoute("/auth/password-reset")({head:()=>({meta:[{title:"Password reset — NOVAWORKS"}]}),component:Page});
-function Page(){const request=useServerFn(requestPasswordReset);const[email,setEmail]=useState("");const[reason,setReason]=useState("");const[done,setDone]=useState(false);const[busy,setBusy]=useState(false);const submit=async()=>{setBusy(true);try{await request({data:{email,reason}});setDone(true)}catch(e:any){toast.error(e.message||"Could not submit request")}finally{setBusy(false)}};return <div className="max-w-md mx-auto px-6 py-16"><h1 className="font-display text-3xl">Request a password reset</h1><p className="text-sm text-noir/60 mt-2">Tell IT why you need the reset. After approval, a temporary password will be emailed to your account.</p>{done?<div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5"><b>Request submitted.</b><p className="text-sm mt-2">IT will review it. For privacy, this page does not reveal whether an account exists for the address.</p><Link to="/auth" className="inline-block mt-4 underline">Back to sign in</Link></div>:<div className="mt-6 space-y-4"><label className="block text-sm">Account email<input className="input-luxe mt-1" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label><label className="block text-sm">Reason<textarea className="input-luxe mt-1 min-h-28" value={reason} onChange={e=>setReason(e.target.value)} placeholder="Explain why you need a password reset"/></label><button onClick={submit} disabled={busy||!email||reason.trim().length<5} className="w-full bg-noir-deep text-white py-3 rounded-md disabled:opacity-50">{busy?"Submitting…":"Submit to IT"}</button><Link to="/auth" className="text-sm underline">Back to sign in</Link></div>}</div>}
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { requestPasswordReset, verifyPasswordResetOtp, completePasswordReset } from "@/lib/password-reset.functions";
+import { toast } from "sonner";
+
+export const Route=createFileRoute("/auth/password-reset")({head:()=>({meta:[{title:"Password security — NOVAWORKS"}]}),component:Page});
+function Page(){
+ const request=useServerFn(requestPasswordReset), verify=useServerFn(verifyPasswordResetOtp), complete=useServerFn(completePasswordReset);
+ const params=typeof window!=="undefined"?new URLSearchParams(window.location.search):new URLSearchParams();
+ const id=params.get("request")||"", token=params.get("token")||"";
+ const [email,setEmail]=useState(""),[reason,setReason]=useState(""),[code,setCode]=useState("");
+ const [password,setPassword]=useState(""),[confirm,setConfirm]=useState(""),[step,setStep]=useState<"request"|"verify"|"pending"|"complete">(id&&token?"complete":"request"),[busy,setBusy]=useState(false);
+ const run=async(fn:()=>Promise<any>,next?:typeof step)=>{setBusy(true);try{await fn();if(next)setStep(next);toast.success("Request processed")}catch(e:any){toast.error(e.message||"Request failed")}finally{setBusy(false)}};
+ return <main className="max-w-md mx-auto px-6 py-16 space-y-5">
+ <h1 className="font-display text-3xl">Password security</h1>
+ {step==="request"&&<><p>Verify your email before IT reviews your recovery request.</p>
+ <input className="input-luxe" type="email" placeholder="Registered email" value={email} onChange={e=>setEmail(e.target.value)}/>
+ <textarea className="input-luxe" placeholder="Reason for reset" value={reason} onChange={e=>setReason(e.target.value)}/>
+ <button className="w-full bg-noir-deep text-white p-3 rounded" disabled={busy||reason.trim().length<5} onClick={()=>run(()=>request({data:{email,reason}}),"verify")}>Request verification</button></>}
+ {step==="verify"&&<><p>If the account exists, enter the six-digit code sent to its registered email.</p>
+ <input className="input-luxe" inputMode="numeric" maxLength={6} placeholder="Verification code" value={code} onChange={e=>setCode(e.target.value)}/>
+ <button className="w-full bg-noir-deep text-white p-3 rounded" disabled={busy||code.length!==6} onClick={()=>run(()=>verify({data:{email,code}}),"pending")}>Verify email</button></>}
+ {step==="pending"&&<p>Your email is verified. IT must approve the request. You will receive a single-use link if approved.</p>}
+ {step==="complete"&&<><p>IT-approved password completion. The link is valid for 15 minutes.</p>
+ <input className="input-luxe" type="password" autoComplete="new-password" placeholder="New strong password" value={password} onChange={e=>setPassword(e.target.value)}/>
+ <input className="input-luxe" type="password" autoComplete="new-password" placeholder="Confirm password" value={confirm} onChange={e=>setConfirm(e.target.value)}/>
+ <button className="w-full bg-noir-deep text-white p-3 rounded" disabled={busy||password!==confirm||!password} onClick={()=>run(async()=>{await complete({data:{id,token,new_password:password}});window.location.href="/auth";})}>Set new password</button></>}
+ <Link to="/auth" className="underline text-sm">Back to sign in</Link>
+ </main>;
+}
