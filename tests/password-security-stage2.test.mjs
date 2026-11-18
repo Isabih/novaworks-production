@@ -5,8 +5,9 @@ const backend=readFileSync("src/lib/password-reset.functions.ts","utf8");
 const migration=readFileSync("mysql/migrations/2026-11-18-password-security.sql","utf8");
 const itUi=readFileSync("src/routes/_authenticated/dashboard.it.password-resets.tsx","utf8");
 test("OTP stored as a digest with bounded attempts and expiry",()=>{
- assert.match(backend,/digest\(id\+"\:"\+otp\)/);
+ assert.match(backend,/otpDigest\(id\+"\:"\+otp\)/);
  assert.match(backend,/otp_attempts>=5/);
+ assert.match(backend,/createHmac\("sha256",key\)/);
  assert.match(migration,/INTERVAL|otp_expires_at/);
 });
 test("IT approval requires email verification, reason and independent approver",()=>{
