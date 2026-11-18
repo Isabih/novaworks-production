@@ -12,7 +12,7 @@ const matches = (a: string, b: string) => {
   return x.length === y.length && timingSafeEqual(x, y);
 };
 const site = () => (process.env.SITE_URL || "https://novaworks.rw").replace(/\/$/, "");
-const safe = (s: string) => s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" })[c]!);
+const safe = (s: string) => { const escapes: Record<string,string> = { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }; return s.replace(/[&<>"']/g, c => escapes[c]); };
 const validReason = (s: string) => { const v=s.trim(); if(v.length<5||v.length>1000) throw new Error("Reason must contain 5–1000 characters"); return v; };
 const requireMail = () => { if(!process.env.RESEND_API_KEY) throw new Error("Email delivery is not configured"); };
 const notifyIT = async (subject: string, body: string) => {
