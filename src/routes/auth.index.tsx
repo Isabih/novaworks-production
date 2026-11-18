@@ -107,8 +107,8 @@ function AuthPage() {
   };
 
   const formCard = (
-    <div className="glass-dark w-full max-w-md rounded-3xl border border-white/15 p-7 sm:p-9 text-white shadow-[0_36px_100px_-40px_rgba(0,0,0,.85)]">
-      <h1 className="font-display text-3xl">{mode==="signin"?"Welcome back":"Create your account"}</h1>
+    <div className="relative isolate bg-[#10151c]/95 backdrop-blur-2xl w-full max-w-md rounded-3xl border border-white/30 p-7 sm:p-9 text-white shadow-[0_36px_100px_-25px_rgba(0,0,0,.95)] ring-1 ring-black/40">
+      <div className="mb-5 inline-flex rounded-full border border-gold/40 bg-black/50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.18em] text-gold">NOVAWORKS · Refined experience</div><h1 className="font-display text-3xl">{mode==="signin"?"Welcome back":"Create your account"}</h1>
       <p className="mt-2 text-sm text-white/65">{mode==="signin"?"Sign in to manage your properties, bookings and saved listings.":"Join NOVAWORKS to save listings, schedule visits, and manage your property journey."}</p>
       {error&&<div role="alert" className="mt-5 rounded-xl border border-rose-400/40 bg-rose-500/15 p-3 text-sm text-rose-100">{error}</div>}
       {mode==="signin"?<form onSubmit={handleSignIn} className="mt-7 space-y-4">
@@ -132,14 +132,14 @@ function AuthPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-noir-deep">
       <AuthHeroMedia video={heroVideo} image={heroImage}/>
-      <div className="absolute inset-0 bg-noir-deep/65"/>
-      <div className="absolute inset-0 bg-gradient-to-r from-noir-deep/95 via-noir-deep/65 to-noir-deep/35"/>
+      <div className="pointer-events-none absolute inset-0 bg-[#070d16]/75"/>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#070d16]/95 via-[#070d16]/75 to-[#070d16]/55"/>
       <header className="relative z-20 flex items-center justify-between gap-4 px-6 py-6 sm:px-10 lg:px-16">
         <Link to="/" className="inline-flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold text-noir-deep"><Home className="h-5 w-5"/></span><span className="leading-tight text-white"><span className="block font-display text-xl tracking-wide">NOVAWORKS</span><span className="block max-w-[240px] text-[9px] uppercase tracking-[.2em] text-white/55">Where Prime Property Meets Peace of Mind</span></span></Link>
         <Link to="/" className="glass hidden sm:inline-flex rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-[.15em] text-white hover:bg-white/15">Back to site</Link>
       </header>
       <main className="relative z-10 mx-auto grid max-w-[1400px] items-center gap-12 px-6 pb-16 pt-4 sm:px-10 lg:grid-cols-2 lg:px-16 lg:pt-10">
-        <div className="hidden lg:block text-white">
+        <div className="hidden lg:block text-white [text-shadow:0_2px_18px_rgba(0,0,0,.85)]">
           <span className="glass inline-flex rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[.22em] text-gold">Premium Real Estate</span>
           <h2 className="mt-7 font-display text-5xl leading-[1.05] xl:text-6xl">Discover Your <span className="gold-text">Perfect</span><br/>Address</h2>
           <p className="mt-6 max-w-md leading-relaxed text-white/70">Explore exceptional properties, manage your bookings and follow your property journey with NOVAWORKS — Kigali's premium real-estate platform.</p>
@@ -154,7 +154,7 @@ function AuthPage() {
 
 function AuthHeroMedia({ video, image }: { video: string; image: string }) {
   const parsed = parseVideoUrl(video || "");
-  if (parsed.kind === "mp4" || parsed.kind === "webm") return <video src={parsed.embed || video} autoPlay muted loop playsInline preload="auto" poster={image || undefined} className="absolute inset-0 h-full w-full object-cover auth-media-kenburns" />;
+  if (parsed.kind === "mp4" || parsed.kind === "webm") return <video src={parsed.embed || video} autoPlay muted loop playsInline preload="metadata" poster={image || undefined} className="absolute inset-0 h-full w-full object-cover auth-media-kenburns" />;
   if ((parsed.kind === "youtube" || parsed.kind === "vimeo") && parsed.embed) {
     let src = parsed.embed;
     if (parsed.kind === "youtube") src += `${src.includes("?") ? "&" : "?"}autoplay=1&mute=1&controls=0&loop=1&playlist=${parsed.id || ""}&playsinline=1`;

@@ -66,7 +66,7 @@ function basicNovaFallback(context: any, messages: ChatMessage[]) {
 
 async function callOpenAI(key: string, model: string, instructions: string, messages: ChatMessage[]) {
   const input = messages.slice(-14).filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: contentText(m.content) }));
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch("https://api.openai.com/v1/responses", { signal: AbortSignal.timeout(20000),
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model, instructions, input, max_output_tokens: 700 }),
@@ -77,7 +77,7 @@ async function callOpenAI(key: string, model: string, instructions: string, mess
 
 async function callOllama(base: string, model: string, instructions: string, messages: ChatMessage[]) {
   const payload = { model, stream: false, messages: [{ role: "system", content: instructions }, ...messages.slice(-14).filter(m=>m.role!=="system").map(m=>({role:m.role,content:contentText(m.content)}))] };
-  const response = await fetch(`${base.replace(/\/$/,"")}/api/chat`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+  const response = await fetch(`${base.replace(/\/$/,"")}/api/chat`, { signal: AbortSignal.timeout(12000), method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
   const json:any = await response.json().catch(()=>({}));
   return {response,json,text:json?.message?.content||""};
 }
@@ -88,7 +88,7 @@ export const Route = createFileRoute("/api/chat")({
       POST: async ({ request }) => {
         try {
           const body = await request.json() as { messages?: ChatMessage[] };
-          if (!Array.isArray(body.messages)) return new Response("messages required", { status: 400 });
+          if (!Array.isArray(body.messages) || body.messages.length > 30 || body.messages.some(m=>!["user","assistant"].includes(m.role) || contentText(m.content).length > 4000)) return new Response("Invalid messages", { status: 400 });
           const key = (process.env.OPENAI_API_KEY || "").trim();
           const ollamaBase=(process.env.OLLAMA_BASE_URL||"").trim();
           const ollamaModel=(process.env.OLLAMA_MODEL||"llama3.2:3b").trim();
@@ -98,14 +98,15 @@ export const Route = createFileRoute("/api/chat")({
             import("@/lib/nova-context.server"),
           ]);
           const user = await getSessionUser(bearer(request));
-          const context = await getNovaContext(user);
+          let context: any;
+          try { context = await getNovaContext(user); } catch (error) { console.error("[NOVA AI] Context query failed", error); context = { authenticated: false, contact: {}, scope: "limited" }; }
           const instructions = `${SYSTEM}\n\nBUSINESS_CONTEXT:\n${JSON.stringify(context, null, 2)}`;
-          const primaryModel = (process.env.OPENAI_MODEL || "gpt-5.6-luna").trim();
-          const fallbackModel = (process.env.OPENAI_FALLBACK_MODEL || "gpt-5.4-mini").trim();
+          const primaryModel = (process.env.OPENAI_MODEL || "gpt-4.1-mini").trim();
+          const fallbackModel = (process.env.OPENAI_FALLBACK_MODEL || "gpt-4o-mini").trim();
 
           if(!key || key === "CHANGE_ME"){
             if(!ollamaBase) return new Response(basicNovaFallback(context, body.messages),{headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store","X-NOVA-Provider":"basic"}});
-            const local=await callOllama(ollamaBase,ollamaModel,instructions,body.messages);if(!local.response.ok||!local.text)return new Response("NOVA local AI is unavailable",{status:503});return new Response(local.text,{headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store","X-NOVA-Provider":"ollama"}});
+            const local=await callOllama(ollamaBase,ollamaModel,instructions,body.messages);if(!local.response.ok||!local.text)return new Response(basicNovaFallback(context, body.messages),{headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store","X-NOVA-Provider":"basic"}});return new Response(local.text,{headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store","X-NOVA-Provider":"ollama"}});
           }
           let { response, json } = await callOpenAI(key, primaryModel, instructions, body.messages);
           if (!response.ok && [400, 404].includes(response.status) && fallbackModel && fallbackModel !== primaryModel) {
@@ -129,7 +130,7 @@ export const Route = createFileRoute("/api/chat")({
           return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
         } catch (e: any) {
           console.error("[NOVA AI]", e);
-          return new Response("NOVA is temporarily unavailable. Please use https://novaworks.rw/contact for assistance.", { status: 503 });
+          return new Response("NOVA is temporarily unavailable. Please visit https://novaworks.rw/contact for assistance.", { status: 503 });
         }
       },
     },

@@ -21,7 +21,7 @@ type Props = Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src" | "width" | "
 };
 
 function defaultLadder(w?: number): number[] {
-  const base = [320, 480, 640, 800, 1200, 1600, 2000];
+  const base = [240, 360, 480, 640, 800, 1200, 1600, 2000];
   if (!w) return base;
   // Keep enough candidates around the rendered size for DPR screens without
   // forcing phones to download desktop-sized files.
@@ -46,7 +46,7 @@ export function ProgressiveImage({
   height,
   widths,
   sizes,
-  quality = 70,
+  quality = 64,
   fit = "cover",
   ...rest
 }: Props) {
@@ -56,7 +56,7 @@ export function ProgressiveImage({
 
   const ladder = useMemo(() => widths ?? defaultLadder(width), [widths, width]);
   const opts: CfImageOpts = { quality, fit, format: "auto", height };
-  const resolvedSrc = fallback ? src : cfImage(src, { ...opts, width: width ?? ladder[ladder.length - 1] });
+  const resolvedSrc = fallback ? src : cfImage(src, { ...opts, width: width ?? (priority ? 1200 : 800) });
   const srcSet = fallback ? undefined : cfImageSrcSet(src, ladder, opts) || undefined;
 
   return (
@@ -83,7 +83,7 @@ export function ProgressiveImage({
         alt={alt}
         loading={loading ?? (priority ? "eager" : "lazy")}
         decoding="async"
-        fetchPriority={priority ? "high" : "auto"}
+        fetchPriority={priority ? "high" : "low"}
         onLoad={() => setLoaded(true)}
         onError={() => {
           // If the CF-resized URL failed (zone without Image Resizing, etc.),

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, X, Send, Sparkles, Phone, Mail } from "lucide-react";
+import { MessageCircle, X, Send, Sparkles } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -71,7 +71,7 @@ export function NovaChat() {
         const copy = m.slice();
         copy[copy.length - 1] = {
           role: "assistant",
-          content: detail ? `NOVA is temporarily unavailable. ${detail}` : "NOVA is temporarily unavailable. Please try again, or contact reception below.",
+          content: "NOVA is temporarily unavailable. Please try again or use our contact page.",
         };
         return copy;
       });
@@ -102,7 +102,7 @@ export function NovaChat() {
             </div>
             <div>
               <div className="text-sm font-semibold">NOVA AI</div>
-              <div className="text-[11px] text-white/60">Your NOVAWORKS guide • Online</div>
+              <div className="text-[11px] text-white/60">Your NOVAWORKS guide · Live data when available</div>
             </div>
           </div>
 
@@ -124,17 +124,7 @@ export function NovaChat() {
             {showEscalate && (
               <div className="mt-3 p-3 rounded-xl border border-gold/30 bg-white/5">
                 <div className="text-xs uppercase tracking-wider text-gold mb-2">Talk to a human</div>
-                <div className="space-y-1.5 text-xs">
-                  <a href="tel:+250788000000" className="flex items-center gap-2 hover:text-gold">
-                    <Phone className="w-3.5 h-3.5" /> Reception: +250 788 000 000
-                  </a>
-                  <a href="mailto:admin@novaworks.rw?subject=Support%20request&body=Hello%20NOVAWORKS%20team%2C%0A%0AI%20need%20help%20with..." className="flex items-center gap-2 hover:text-gold">
-                    <Mail className="w-3.5 h-3.5" /> admin@novaworks.rw
-                  </a>
-                  <a href="mailto:support@novaworks.rw?subject=Technical%20issue" className="flex items-center gap-2 hover:text-gold">
-                    <Mail className="w-3.5 h-3.5" /> support@novaworks.rw
-                  </a>
-                </div>
+                <a href="/contact" className="inline-flex rounded-lg border border-gold/40 px-3 py-2 text-xs font-semibold text-gold hover:bg-white/10">Open verified NOVAWORKS contact page</a>
               </div>
             )}
           </div>
