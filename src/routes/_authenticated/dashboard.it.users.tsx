@@ -6,7 +6,7 @@ import { DashboardShell, Panel } from "@/components/dashboard/DashboardShell";
 import { RoleGate } from "@/components/dashboard/RoleGate";
 import { shellForStaff } from "@/components/dashboard/nav-config";
 import { useAuth } from "@/lib/use-auth";
-import { listAllUsers, updateUserProfile, updateUserRoles, itTriggerPasswordReset, deleteUser } from "@/lib/staff.functions";
+import { listAllUsers, updateUserProfile, updateUserRoles, deleteUser } from "@/lib/staff.functions";
 import { MediaInput } from "@/components/dashboard/MediaInput";
 import { toast } from "sonner";
 
@@ -29,7 +29,7 @@ function UsersPage() {
   const load = useServerFn(listAllUsers);
   const updProfile = useServerFn(updateUserProfile);
   const updRoles = useServerFn(updateUserRoles);
-  const triggerReset = useServerFn(itTriggerPasswordReset);
+
   const removeUser = useServerFn(deleteUser);
 
   const [users, setUsers] = useState<any[]>([]);
@@ -73,12 +73,8 @@ function UsersPage() {
     } catch (e: any) { toast.error(e.message ?? "Failed"); }
   };
 
-  const reset = async (u: any) => {
-    if (!confirm(`Trigger password reset for ${u.email}? It will appear in the password-reset queue.`)) return;
-    try {
-      await triggerReset({ data: { user_id: u.id } });
-      toast.success("Reset request created — approve in Password Resets");
-    } catch (e: any) { toast.error(e.message ?? "Failed"); }
+  const reset = (u: any) => {
+    toast.info(`Ask ${u.email} to open /auth/password-reset and verify their email. IT will be notified after submission.`);
   };
 
   const remove = async (u: any) => {
