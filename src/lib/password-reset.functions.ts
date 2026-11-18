@@ -4,7 +4,7 @@ import { requireMysqlAuth } from "@/integrations/mysql/auth-middleware";
 import { rows, uuid } from "./db-utils.server";
 import { queryRows, withTransaction } from "./mysql.server";
 import { makeOtp, makeToken, hashPassword, verifyPassword, validateStrongPassword } from "./security.server";
-import { sendMail } from "./mailer.server";
+import { queuePasswordEmail, itRecipients } from "./password-notification-outbox.server";
 
 const digest = (s: string) => createHash("sha256").update(s).digest("hex");
 const otpDigest = (s: string) => { const key=process.env.NOVAWORKS_SECURITY_SECRET; if(!key || key.length<32) throw new Error("NOVAWORKS_SECURITY_SECRET must be configured (32+ characters)"); return createHmac("sha256",key).update(s).digest("hex"); };
@@ -16,17 +16,12 @@ const site = () => (process.env.SITE_URL || "https://novaworks.rw").replace(/\/$
 const safe = (s: string) => { const escapes: Record<string,string> = { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }; return s.replace(/[&<>"']/g, c => escapes[c]); };
 const validReason = (s: string) => { const v=s.trim(); if(v.length<5||v.length>1000) throw new Error("Reason must contain 5–1000 characters"); return v; };
 const requireMail = () => { if(!process.env.RESEND_API_KEY) throw new Error("Email delivery is not configured"); };
-const notifyIT = async (subject: string, body: string) => {
-  const emails = (process.env.NOVAWORKS_IT_ALERT_EMAILS || "").split(",").map(x=>x.trim()).filter(Boolean);
-  if(!emails.length) throw new Error("IT alert recipients are not configured");
-  await sendMail(emails, subject, body);
-};
 async function auditTx(conn:any, actor:string|null, action:string, id:string, details:object={}) {
   await conn.execute("INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,new_values) VALUES(?,?,'password_security',?,?)",
     [actor,action,id,JSON.stringify(details)]);
 }
 async function begin(user:{id:string;email:string;full_name:string}, type:"forgot"|"change", reason:string) {
-  requireMail();
+  requireMail(); itRecipients();
   const otp=makeOtp(), id=uuid();
   const recent=await rows<any>("SELECT id FROM password_security_requests WHERE user_id=? AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 60 SECOND) LIMIT 1",[user.id]);
   if(recent.length) return {ok:true};
@@ -36,12 +31,9 @@ async function begin(user:{id:string;email:string;full_name:string}, type:"forgo
       VALUES(?,?,?,?,?, ?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 5 MINUTE),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))`,
       [id,user.id,type,user.email,reason,otpDigest(id+":"+otp)]);
     await auditTx(conn,user.id,"PASSWORD_REQUEST_CREATED",id,{type});
+    await queuePasswordEmail(conn,id,user.email,"NOVAWORKS password request verification",`<p>Your verification code is <b>${otp}</b>. It expires in 5 minutes.</p>`);
+    await queuePasswordEmail(conn,id,itRecipients(),"NOVAWORKS password request received",`<p>A ${type} password request was submitted for ${safe(user.email)}. Request ID: ${id}. Approval is disabled until email verification.</p>`);
   });
-  // Failure leaves an auditable pending request; user may initiate a fresh request after cooldown.
-  await Promise.all([
-    sendMail(user.email,"NOVAWORKS password request verification",`<p>Your verification code is <b>${otp}</b>. It expires in 5 minutes.</p>`),
-    notifyIT("NOVAWORKS password request received",`<p>A ${type} password request was submitted for ${safe(user.email)}. Request ID: ${id}. Approval is disabled until email verification.</p>`)
-  ]);
   return {ok:true};
 }
 
@@ -83,10 +75,11 @@ export const verifyPasswordResetOtp=createServerFn({method:"POST"})
      }
      await conn.execute("UPDATE password_security_requests SET status='email_verified',otp_verified_at=UTC_TIMESTAMP(),otp_hash=REPEAT('0',64) WHERE id=?",[r.id]);
      await auditTx(conn,r.user_id,"PASSWORD_EMAIL_VERIFIED",r.id);
+     await queuePasswordEmail(conn,r.id,itRecipients(),"NOVAWORKS password request awaiting approval",`<p>Email verified for request ${r.id}. Sign in to the IT dashboard to review.</p>`);
      verified=true;
    });
    if(!verified) throw new Error("Invalid or expired code");
-   await notifyIT("NOVAWORKS password request awaiting approval",`<p>Email verified for request ${requestId}. Sign in to the IT dashboard to review.</p>`);
+
    return {ok:true};
  });
 
@@ -114,10 +107,10 @@ export const approvePasswordReset=createServerFn({method:"POST"}).middleware([re
        approved_at=UTC_TIMESTAMP(),completion_token_hash=?,completion_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 15 MINUTE) WHERE id=?`,
        [context.userId,reason,digest(token),data.id]);
      await auditTx(conn,context.userId,"PASSWORD_REQUEST_APPROVED",data.id,{reason});
+     const link=`${site()}/auth/password-reset?request=${encodeURIComponent(data.id)}&token=${encodeURIComponent(token)}`;
+     await queuePasswordEmail(conn,data.id,email,"NOVAWORKS password request approved",`<p>IT approved your request. <a href="${safe(link)}">Set your new password</a>. This link expires in 15 minutes.</p>`);
+     await queuePasswordEmail(conn,data.id,itRecipients(),"NOVAWORKS password request approved",`<p>Request ${data.id} was approved by IT. Reason: ${safe(reason)}</p>`);
    });
-   const link=`${site()}/auth/password-reset?request=${encodeURIComponent(data.id)}&token=${encodeURIComponent(token)}`;
-   await sendMail(email,"NOVAWORKS password request approved",`<p>IT approved your request. <a href="${safe(link)}">Set your new password</a>. This link expires in 15 minutes.</p>`);
-   await notifyIT("NOVAWORKS password request approved",`<p>Request ${data.id} was approved by IT. Reason: ${safe(reason)}</p>`);
    return {ok:true};
  });
 
@@ -134,11 +127,9 @@ export const denyPasswordReset=createServerFn({method:"POST"}).middleware([requi
      email=r.email;
      await conn.execute("UPDATE password_security_requests SET status='rejected',approved_by=?,approval_reason=? WHERE id=?",[context.userId,reason,data.id]);
      await auditTx(conn,context.userId,"PASSWORD_REQUEST_REJECTED",data.id,{reason});
+     await queuePasswordEmail(conn,data.id,email,"NOVAWORKS password request rejected",`<p>Your password request was rejected. Reason: ${safe(reason)}</p>`);
+     await queuePasswordEmail(conn,data.id,itRecipients(),"NOVAWORKS password request rejected",`<p>Request ${data.id} was rejected. Reason: ${safe(reason)}</p>`);
    });
-   await Promise.all([
-     sendMail(email,"NOVAWORKS password request rejected",`<p>Your password request was rejected. Reason: ${safe(reason)}</p>`),
-     notifyIT("NOVAWORKS password request rejected",`<p>Request ${data.id} was rejected. Reason: ${safe(reason)}</p>`)
-   ]);
    return {ok:true};
  });
 
@@ -158,10 +149,8 @@ export const completePasswordReset=createServerFn({method:"POST"})
      await conn.execute("UPDATE auth_sessions SET revoked_at=UTC_TIMESTAMP() WHERE user_id=? AND revoked_at IS NULL",[r.user_id]);
      await conn.execute("UPDATE password_security_requests SET status='completed',completion_token_hash=NULL,completed_at=UTC_TIMESTAMP() WHERE id=?",[r.id]);
      await auditTx(conn,r.user_id,"PASSWORD_CHANGED",r.id,{approved_by:r.approved_by});
+     await queuePasswordEmail(conn,r.id,email,"NOVAWORKS password changed","<p>Your password has been changed and previous sessions have been signed out.</p>");
+     await queuePasswordEmail(conn,r.id,itRecipients(),"NOVAWORKS password change completed",`<p>Request ${r.id} has been completed.</p>`);
    });
-   await Promise.all([
-     sendMail(email,"NOVAWORKS password changed", "<p>Your password has been changed and previous sessions have been signed out.</p>"),
-     notifyIT("NOVAWORKS password change completed",`<p>Request ${data.id} has been completed.</p>`)
-   ]);
    return {ok:true};
  });
