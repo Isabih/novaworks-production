@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { LayoutDashboard, Image as ImageIcon, Plus, Trash2, Save, Loader2, Star, Building2, Check } from "lucide-react";
 import { DashboardShell, Panel } from "@/components/dashboard/DashboardShell";
 import { RoleGate } from "@/components/dashboard/RoleGate";
+import { requestSaveVerification } from "@/lib/save-verification.server";
 import { getHomeContent, updateHomeContent, type HeroSlide } from "@/lib/home-content.functions";
 import { listPropertiesForPicker } from "@/lib/property-of-day.functions";
 import { CATEGORY_META, type PropertyCategory } from "@/lib/properties";
@@ -30,6 +31,7 @@ const NAV = [
 function Page() {
   const load = useServerFn(getHomeContent);
   const save = useServerFn(updateHomeContent);
+  const requestOtp=useServerFn(requestSaveVerification);
   const loadProps = useServerFn(listPropertiesForPicker);
 
   const [slides, setSlides] = useState<HeroSlide[]>([]);
@@ -85,7 +87,11 @@ function Page() {
     }
     setSaving(true);
     try {
-      await save({ data: { hero_slides: cleanSlides, category_images: cats, hero_story_video_url: video, hero_video_bg_url: bg || "", featured_property_ids: featuredIds, auth_hero_image_url: authHero || "", auth_hero_video_url: authVideo || "" } });
+      const payload={ hero_slides: cleanSlides, category_images: cats, hero_story_video_url: video, hero_video_bg_url: bg || "", featured_property_ids: featuredIds, auth_hero_image_url: authHero || "", auth_hero_video_url: authVideo || "" };
+      const challenge=await requestOtp({data:{action:"HOME_CONTENT_UPDATE",payload}});
+      const code=window.prompt("Check your account email for a six-digit code. Enter it to approve these exact homepage changes:");
+      if(!code){toast.message("Save cancelled — no changes applied");return;}
+      await save({data:{...payload,verification:{challenge_id:challenge.challenge_id,code:code.trim()}}});
       setSlides(cleanSlides);
       toast.success("Homepage content saved");
     } catch (e: any) {
