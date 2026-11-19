@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Settings, LayoutDashboard, Mail, Save, Send, Star } from "lucide-react";
 import { DashboardShell, Panel } from "@/components/dashboard/DashboardShell";
 import { useAuth } from "@/lib/use-auth";
+import { requestSaveVerification } from "@/lib/save-verification.server";
 import { getAppSettings, updateAppSettings } from "@/lib/app-settings.functions";
 import { sendCustomEmail } from "@/lib/email.functions";
 import { sendSmsTest } from "@/lib/sms.functions";
@@ -27,6 +28,7 @@ function ITSettings() {
   const canEdit = roles.includes("it");
   const get = useServerFn(getAppSettings);
   const save = useServerFn(updateAppSettings);
+  const requestOtp=useServerFn(requestSaveVerification);
   const sendTest = useServerFn(sendCustomEmail);
   const sendSmsSample = useServerFn(sendSmsTest);
 
@@ -84,7 +86,11 @@ function ITSettings() {
   const submit = async () => {
     setSaving(true);
     try {
-      await save({ data: { ...form, reply_to: form.reply_to || null } });
+      const payload={...form,reply_to:form.reply_to||null};
+      const challenge=await requestOtp({data:{action:"APP_SETTINGS_UPDATE",payload}});
+      const code=window.prompt("A six-digit code was sent to your account email. Enter it to authorize these exact settings changes:");
+      if(!code){toast.message("Save cancelled — no changes applied");return;}
+      await save({data:{...payload,verification:{challenge_id:challenge.challenge_id,code:code.trim()}}});
       toast.success("Email settings saved");
     } catch (e: any) { toast.error(e.message ?? "Failed to save"); }
     finally { setSaving(false); }
