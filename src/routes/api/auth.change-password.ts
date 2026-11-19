@@ -1,5 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { bearer,getSessionUser } from "@/lib/auth.server";
-import { hashPassword,validateStrongPassword,verifyPassword } from "@/lib/security.server";
-import { queryRows } from "@/lib/mysql.server";
-export const Route=createFileRoute("/api/auth/change-password")({server:{handlers:{POST:async({request})=>{const token=bearer(request),u=await getSessionUser(token);if(!u)return Response.json({error:"Unauthorized"},{status:401});const b=await request.json() as any;const newPassword=String(b.new_password||"");if(!validateStrongPassword(newPassword))return Response.json({error:"Password must be 9+ characters with uppercase, lowercase, number and symbol"},{status:400});const [row]:any=await queryRows<any[]>(`SELECT password_hash FROM users WHERE id=?`,[u.id]);if(b.current_password&&!verifyPassword(String(b.current_password),row?.password_hash))return Response.json({error:"Current password is incorrect"},{status:400});await queryRows<any>(`UPDATE users SET password_hash=?,must_change_password=0 WHERE id=?`,[hashPassword(newPassword),u.id]);return Response.json({ok:true})}}}});
+import { bearer, getSessionUser } from "@/lib/auth.server";
+
+// Security gate: the legacy endpoint must never write a password directly.
+// Stage 2 will replace this response with a verified request + independent IT approval flow.
+export const Route = createFileRoute("/api/auth/change-password")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const user = await getSessionUser(bearer(request));
+        if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+        return Response.json(
+          { error: "Password changes require email verification and IT approval. This workflow is being upgraded." },
+          { status: 403 },
+        );
+      },
+    },
+  },
+});
