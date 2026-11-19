@@ -107,8 +107,8 @@ function AuthPage() {
   };
 
   const formCard = (
-    <div className="glass-dark w-full max-w-md rounded-3xl border border-white/15 p-7 sm:p-9 text-white shadow-[0_36px_100px_-40px_rgba(0,0,0,.85)]">
-      <h1 className="font-display text-3xl">{mode==="signin"?"Welcome back":"Create your account"}</h1>
+    <div className="glass-dark w-full max-w-md rounded-3xl border border-white/30 bg-[#0b1523]/60 backdrop-blur-2xl p-7 sm:p-9 text-white ring-1 ring-white/15 shadow-[0_36px_110px_-25px_rgba(0,0,0,.95)]">
+      <span className="mb-4 inline-flex rounded-full border border-gold/50 bg-black/35 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.15em] text-gold">NOVAWORKS · Version 1.2.3 Enhanced</span><h1 className="font-display text-3xl">{mode==="signin"?"Welcome back":"Create your account"}</h1>
       <p className="mt-2 text-sm text-white/65">{mode==="signin"?"Sign in to manage your properties, bookings and saved listings.":"Join NOVAWORKS to save listings, schedule visits, and manage your property journey."}</p>
       {error&&<div role="alert" className="mt-5 rounded-xl border border-rose-400/40 bg-rose-500/15 p-3 text-sm text-rose-100">{error}</div>}
       {mode==="signin"?<form onSubmit={handleSignIn} className="mt-7 space-y-4">
@@ -132,8 +132,8 @@ function AuthPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-noir-deep">
       <AuthHeroMedia video={heroVideo} image={heroImage}/>
-      <div className="absolute inset-0 bg-noir-deep/65"/>
-      <div className="absolute inset-0 bg-gradient-to-r from-noir-deep/95 via-noir-deep/65 to-noir-deep/35"/>
+      <div className="pointer-events-none absolute inset-0 bg-noir-deep/75"/>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-noir-deep/95 via-noir-deep/75 to-noir-deep/55"/>
       <header className="relative z-20 flex items-center justify-between gap-4 px-6 py-6 sm:px-10 lg:px-16">
         <Link to="/" className="inline-flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold text-noir-deep"><Home className="h-5 w-5"/></span><span className="leading-tight text-white"><span className="block font-display text-xl tracking-wide">NOVAWORKS</span><span className="block max-w-[240px] text-[9px] uppercase tracking-[.2em] text-white/55">Where Prime Property Meets Peace of Mind</span></span></Link>
         <Link to="/" className="glass hidden sm:inline-flex rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-[.15em] text-white hover:bg-white/15">Back to site</Link>
@@ -179,7 +179,7 @@ function Field({ label, right, children }: { label: string; right?: React.ReactN
   return (
     <label className="block">
       <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-xs font-medium text-white/65">{label}</span>
+        <span className="text-xs font-medium text-white/90">{label}</span>
         {right}
       </div>
       {children}
@@ -188,9 +188,9 @@ function Field({ label, right, children }: { label: string; right?: React.ReactN
 }
 
 function InputWithIcon({ icon, children, tone = "normal" }: { icon: React.ReactNode; children: React.ReactNode; tone?: "normal" | "danger" | "success" }) {
-  const border = tone === "danger" ? "border-rose-400 focus-within:border-rose-500 focus-within:ring-rose-200" : tone === "success" ? "border-emerald-400 focus-within:border-emerald-500 focus-within:ring-emerald-200" : "border-white/15 focus-within:border-gold focus-within:ring-gold/20";
+  const border = tone === "danger" ? "border-rose-400 focus-within:border-rose-500 focus-within:ring-rose-200" : tone === "success" ? "border-emerald-400 focus-within:border-emerald-500 focus-within:ring-emerald-200" : "border-white/35 focus-within:border-gold focus-within:ring-gold/20";
   return (
-    <div className={`flex items-center gap-2 rounded-xl border bg-white/5 px-4 py-3 focus-within:ring-2 transition ${border}`}>
+    <div className={`flex items-center gap-2 rounded-xl border bg-black/35 px-4 py-3 focus-within:ring-2 transition ${border}`}>
       <span className="text-white/45">{icon}</span>
       {children}
     </div>
