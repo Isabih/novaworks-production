@@ -23,6 +23,7 @@ import { useAuth } from "@/lib/use-auth";
 import {
   listAllBookings,
   confirmBookingPayment,
+  recordManualBookingPayment,
   rejectBooking,
   replyToBooking,
 } from "@/lib/bookings.functions";
@@ -112,6 +113,7 @@ function BookingsDesk() {
 
   const list = useServerFn(listAllBookings);
   const confirm = useServerFn(confirmBookingPayment);
+  const verifyManual = useServerFn(recordManualBookingPayment);
   const reject = useServerFn(rejectBooking);
   const reply = useServerFn(replyToBooking);
 
@@ -119,6 +121,8 @@ function BookingsDesk() {
   const [busy, setBusy] = useState<string | null>(null);
   const [unit, setUnit] = useState<Record<string, string>>({});
   const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [paymentReference,setPaymentReference] = useState<Record<string,string>>({});
+  const [paymentEvidence,setPaymentEvidence] = useState<Record<string,string>>({});
 
   const refresh = () =>
     list()
@@ -133,7 +137,20 @@ function BookingsDesk() {
     refresh();
   }, []);
 
+  async function doRecordPayment(b:any){
+    const reference=(paymentReference[b.id]||"").trim();
+    const note=(paymentEvidence[b.id]||"").trim();
+    if(reference.length<4||note.length<10)return toast.error("Enter a payment reference and at least 10 characters describing verified evidence");
+    if(!window.confirm("Have you independently verified actual receipt of this payment? This action is audited."))return;
+    setBusy(b.id);
+    try{
+      await verifyManual({data:{booking_id:b.id,reference,evidence_note:note,channel:b.payment_method,amount:Number(b.amount),currency:b.currency}});
+      toast.success("Manual payment recorded. Confirm the apartment separately.");refresh();
+    }catch(e:any){toast.error(e.message||"Payment could not be verified")}finally{setBusy(null)}
+  }
+
   async function doConfirm(b: any) {
+    if(b.payment_method!=="vip"&&b.payment_status!=="paid")return toast.error("Verify the manual payment before approving the booking");
     setBusy(b.id);
 
     try {
@@ -387,7 +404,17 @@ function BookingsDesk() {
                     </div>
                   )}
 
-                  <div className="mt-4 rounded-xl border border-noir/10 bg-[#fbfaf7] p-3">
+                  {b.payment_method!=="vip"&&b.payment_status!=="paid"&&(
+                     <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-2">
+                       <p className="text-sm font-semibold text-amber-950">Step 1 — Verify manual payment received</p>
+                       <p className="text-xs text-amber-900">Check actual bank, cash or Mobile Money records. Screenshots alone are not proof.</p>
+                       <input className="input-luxe" placeholder="Transaction reference / cash receipt number" value={paymentReference[b.id]||""} onChange={e=>setPaymentReference(v=>({...v,[b.id]:e.target.value}))}/>
+                       <textarea className="input-luxe min-h-20" placeholder="How was payment independently verified? (required)" value={paymentEvidence[b.id]||""} onChange={e=>setPaymentEvidence(v=>({...v,[b.id]:e.target.value}))}/>
+                       <button disabled={busy===b.id} onClick={()=>doRecordPayment(b)} className="rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Record verified payment</button>
+                     </div>
+                   )}
+                   {b.payment_method==="vip"&&<p className="mt-3 rounded-lg bg-gold/10 p-3 text-sm">VIP waiver: approval does not record a payment or owner revenue.</p>}
+                   <div className="mt-4 rounded-xl border border-noir/10 bg-[#fbfaf7] p-3">
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-noir/45">
                       Message to customer
                     </label>
