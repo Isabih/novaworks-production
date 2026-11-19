@@ -33,7 +33,7 @@ export const requestSaveVerification=createServerFn({method:"POST"}).middleware(
    return {challenge_id:id,expires_in_seconds:300};
  });
 export async function consumeSaveVerification(conn:PoolConnection,userId:string,action:string,payload:any,challengeId:string,code:string){
- if(!challengeId||!/^\\d{6}$/.test(code||""))throw new Error("Email verification required before saving");
+ if(!challengeId||!/^\d{6}$/.test(code||""))throw new Error("Email verification required before saving");
  const [found]:any=await conn.execute(`SELECT *, (expires_at>UTC_TIMESTAMP()) AS valid_now FROM save_verification_challenges
  WHERE id=? AND user_id=? AND action_key=? FOR UPDATE`,[challengeId,userId,action]);
  const r=found[0];
