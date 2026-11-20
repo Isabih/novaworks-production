@@ -4,8 +4,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Mail, Lock, User as UserIcon, ArrowRight, Phone, Home } from "lucide-react";
 import { useAuth, dashboardPathFor } from "@/lib/use-auth";
 import { VerifyOtpModal } from "@/components/auth/VerifyOtpModal";
-import { useServerFn } from "@tanstack/react-start";
-import { getHomeContent } from "@/lib/home-content.functions";
+import { cfImage } from "@/lib/cf-image";
 import { PasswordStrength, isStrongPassword } from "@/components/auth/PasswordStrength";
 import { parseVideoUrl } from "@/components/dashboard/VideoUrlInput";
 
@@ -42,18 +41,38 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [remember, setRemember] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
-  const loadHome = useServerFn(getHomeContent);
   const [heroImage, setHeroImage] = useState<string>("");
   const [heroReady, setHeroReady] = useState(false);
   const [heroMediaLoaded, setHeroMediaLoaded] = useState(false);
   const [heroVideo, setHeroVideo] = useState<string>("");
   useEffect(() => {
-    loadHome().then((d) => {
-      if (d?.auth_hero_image_url) setHeroImage(d.auth_hero_image_url);
-      if (d?.auth_hero_video_url) setHeroVideo(d.auth_hero_video_url);
-    }).catch(() => {}).finally(() => setHeroReady(true));
-  }, [loadHome]);
-
+    let active = true;
+    const cacheKey = "nw_public_home_media_v1";
+    const apply = (home: any) => {
+      if (!active) return;
+      setHeroImage(typeof home?.auth_hero_image_url === "string" ? home.auth_hero_image_url : "");
+      setHeroVideo(typeof home?.auth_hero_video_url === "string" ? home.auth_hero_video_url : "");
+      setHeroReady(true);
+    };
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const entry = JSON.parse(cached);
+        if (Date.now() - entry.time < 60_000) apply(entry.home);
+      }
+    } catch {}
+    // Use the same public bundle as the homepage, avoiding an extra server-function request.
+    fetch("/api/public/property-categories?bundle=home")
+      .then(r => { if (!r.ok) throw new Error("Homepage media unavailable"); return r.json(); })
+      .then(data => {
+        if (!active) return;
+        const home = data?.home ?? {};
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ time: Date.now(), home })); } catch {}
+        apply(home);
+      })
+      .catch(() => { if (active) setHeroReady(true); });
+    return () => { active = false; };
+  }, []);
   useEffect(() => { setHeroMediaLoaded(false); }, [heroImage, heroVideo]);
 
   // Sign-in fields
@@ -167,7 +186,7 @@ function AuthHeroMedia({ video, image, onReady }: { video: string; image: string
     return <iframe src={src} onLoad={onReady} title="NOVAWORKS sign-in background" className="absolute -inset-[8%] h-[116%] w-[116%] pointer-events-none auth-media-kenburns" allow="autoplay; fullscreen; encrypted-media" />;
   }
   return <img
-    src={image || DEFAULT_HERO_IMAGE}
+    src={cfImage(image || DEFAULT_HERO_IMAGE, { width: 1600, quality: 70, format: "auto", fit: "cover" })}
     alt="Luxury property"
     loading="eager"
     decoding="async"
