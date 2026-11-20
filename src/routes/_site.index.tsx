@@ -4,6 +4,7 @@ import { CATEGORY_META, type PropertyCategory, type Property } from "@/lib/prope
 import type { PropertyTypeRow } from "@/lib/property-types.types";
 import { PropertyCard } from "@/components/site/PropertyCard";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { cfImage } from "@/lib/cf-image";
 import { useQuery } from "@tanstack/react-query";
 import { ProgressiveImage } from "@/components/site/ProgressiveImage";
 import { getYouTubeId } from "@/components/site/VideoPlayer";
@@ -101,8 +102,8 @@ function HomePage() {
     const img = new Image();
     img.decoding = "async";
     img.onload = () => { if (!cancelled) setReadySlides(prev => ({ ...prev, [activeSlideImage]: true })); };
-    img.src = activeSlideImage;
-    if (img.complete && img.naturalWidth > 0) img.onload?.(new Event("load"));
+    img.src = cfImage(activeSlideImage, { width: 1600, height: 1080, quality: 64, fit: "cover", format: "auto" });
+    if (img.complete && img.naturalWidth > 0 && !cancelled) setReadySlides(prev => ({ ...prev, [activeSlideImage]: true }));
     return () => { cancelled = true; };
   }, [activeSlideImage, readySlides]);
   const categoryImages = home?.category_images ?? {};
