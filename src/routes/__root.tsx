@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import faviconUrl from "../assets/novaworks-logo.png";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/use-auth";
+import { IdleLogout } from "@/components/auth/IdleLogout";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -138,6 +139,7 @@ function RootComponent() {
       <AuthProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
+        <IdleLogout />
         <Toaster position="top-right" richColors />
       </AuthProvider>
     </QueryClientProvider>
