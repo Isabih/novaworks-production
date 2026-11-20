@@ -3,7 +3,7 @@ import { ArrowRight, ArrowUpRight, Play, Pause, Search, MapPin, Building2, Castl
 import { CATEGORY_META, type PropertyCategory, type Property } from "@/lib/properties";
 import type { PropertyTypeRow } from "@/lib/property-types.types";
 import { PropertyCard } from "@/components/site/PropertyCard";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProgressiveImage } from "@/components/site/ProgressiveImage";
 import { getYouTubeId } from "@/components/site/VideoPlayer";
@@ -91,7 +91,20 @@ function HomePage() {
   const home = publicHome?.home;
   const stats = publicHome?.stats;
   // Do not paint stock fallback photos while the database-backed homepage is still loading.
-  const HERO_SLIDES = (homePending ? [] : (home?.hero_slides && home.hero_slides.length > 0 ? home.hero_slides : FALLBACK_SLIDES)) as ReadonlyArray<{ image: string; title: string; titleAccent: string; subtitle: string }>;
+  const HERO_SLIDES = useMemo(() => (homePending ? [] : (home?.hero_slides && home.hero_slides.length > 0 ? home.hero_slides : FALLBACK_SLIDES)) as ReadonlyArray<{ image: string; title: string; titleAccent: string; subtitle: string }>, [homePending, home?.hero_slides]);
+  const [readySlides, setReadySlides] = useState<Record<string, boolean>>({});
+  const activeSlideIndex = Math.min(slide, Math.max(HERO_SLIDES.length - 1, 0));
+  const activeSlideImage = HERO_SLIDES[activeSlideIndex]?.image;
+  useEffect(() => {
+    if (!activeSlideImage || readySlides[activeSlideImage]) return;
+    let cancelled = false;
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => { if (!cancelled) setReadySlides(prev => ({ ...prev, [activeSlideImage]: true })); };
+    img.src = activeSlideImage;
+    if (img.complete && img.naturalWidth > 0) img.onload?.(new Event("load"));
+    return () => { cancelled = true; };
+  }, [activeSlideImage, readySlides]);
   const categoryImages = home?.category_images ?? {};
   const nextSlide = useCallback(() => {
     setSlide((p) => (p + 1) % Math.max(HERO_SLIDES.length, 1));
@@ -122,7 +135,7 @@ function HomePage() {
   const pod = publicHome?.pod ?? null;
   const storyVideo = home?.hero_story_video_url ?? "https://www.youtube.com/watch?v=1uO3l3k7a34";
   const bgVideo = home?.hero_video_bg_url ?? null;
-  const currentSlide = HERO_SLIDES[Math.min(slide, HERO_SLIDES.length - 1)] ?? FALLBACK_SLIDES[0];
+  const currentSlide = HERO_SLIDES[activeSlideIndex] ?? FALLBACK_SLIDES[0];
   // Real-property images for the "Building Rwanda" collage. Falls back to hero slide images.
   const collageImages: string[] = (featuredReal ?? [])
     .map((p) => p.cover)
@@ -142,6 +155,7 @@ function HomePage() {
       <GuidedTour open={tourOpen} onClose={()=>setTourOpen(false)}/>
       {/* HERO — cinematic slideshow with Ken Burns */}
       <section className="relative h-screen min-h-[700px] max-h-[1100px] overflow-hidden bg-noir-deep">
+        {!activeHeroVideo && <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-[#30271d] via-[#141313] to-black" />}
         {activeHeroVideo ? (
           activeYtId ? (
             <iframe
@@ -164,17 +178,18 @@ function HomePage() {
         ) : HERO_SLIDES.map((s, i) => (
           <div
             key={i}
-            className={`absolute inset-0 transition-opacity duration-1000 ${slide === i ? "opacity-100" : "opacity-0"}`}
+            className={`absolute inset-0 transition-opacity duration-1000 ${slide === i && readySlides[s.image] ? "opacity-100" : "opacity-0"}`}
           >
             <div className={`absolute inset-0 ${slide === i ? "animate-ken-burns" : ""}`}>
               <ProgressiveImage
                 src={s.image}
                 alt={s.title}
-                priority={i === 0}
+                priority={i === activeSlideIndex}
                 width={1920}
                 height={1080}
                 sizes="100vw"
-                widths={[800, 1200, 1600, 1920]}
+                loading={i === activeSlideIndex ? "eager" : "lazy"}
+                widths={[640, 960, 1280, 1600, 1920]}
                 containerClassName="absolute inset-0"
                 className="w-full h-full object-cover"
               />
