@@ -128,11 +128,13 @@ function ContactEditPage() {
   };
 
   const onSave = async () => {
+    if (!dirty) return;
     if (!content.ceo.image) return toast.error("CEO photo is required");
     if (content.team.some((m) => !m.image)) return toast.error("Every team member needs a photo");
     setSaving(true);
     try {
       const challenge = await requestOtp({data:{action:"CONTACT_CONTENT_UPDATE",payload:content}});
+      if(challenge.verified){await save({data:{...content,verification:{challenge_id:"",code:""}}});setOriginal(JSON.stringify(content));toast.success("Who We Are & Contact updated");return;}
       setPendingSave({payload: content, challengeId: challenge.challenge_id});
     } catch (e: any) { toast.error(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
