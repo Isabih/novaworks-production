@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { requestSaveVerification } from "@/lib/save-verification.server";
 import { LayoutDashboard, Mail, Save, Plus, Trash2, Users, Eye, EyeOff, Phone, MapPin, Clock, Quote, Film } from "lucide-react";
 import { DashboardShell, Panel } from "@/components/dashboard/DashboardShell";
 import { RoleGate } from "@/components/dashboard/RoleGate";
@@ -34,6 +35,7 @@ function ContactEditPage() {
   const shell = navForRoles(roles);
   const load = useServerFn(getContactContent);
   const save = useServerFn(updateContactContent);
+  const requestOtp = useServerFn(requestSaveVerification);
   const [content, setContent] = useState<ContactContent | null>(null);
   const [original, setOriginal] = useState<string>("");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -128,7 +130,10 @@ function ContactEditPage() {
     if (content.team.some((m) => !m.image)) return toast.error("Every team member needs a photo");
     setSaving(true);
     try {
-      await save({ data: content });
+      const challenge = await requestOtp({data:{action:"CONTACT_CONTENT_UPDATE",payload:content}});
+      const code = window.prompt("Check your account email for a six-digit code to approve these contact changes:");
+      if (!code) { toast.message("Save cancelled — no changes applied"); return; }
+      await save({ data: {...content, verification:{challenge_id:challenge.challenge_id,code:code.trim()}} });
       setOriginal(JSON.stringify(content));
       toast.success("Who We Are & Contact updated");
     } catch (e: any) { toast.error(e?.message ?? "Save failed"); }
