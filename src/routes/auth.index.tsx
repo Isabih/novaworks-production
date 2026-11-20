@@ -45,6 +45,7 @@ function AuthPage() {
   const loadHome = useServerFn(getHomeContent);
   const [heroImage, setHeroImage] = useState<string>("");
   const [heroReady, setHeroReady] = useState(false);
+  const [heroMediaLoaded, setHeroMediaLoaded] = useState(false);
   const [heroVideo, setHeroVideo] = useState<string>("");
   useEffect(() => {
     loadHome().then((d) => {
@@ -52,6 +53,8 @@ function AuthPage() {
       if (d?.auth_hero_video_url) setHeroVideo(d.auth_hero_video_url);
     }).catch(() => {}).finally(() => setHeroReady(true));
   }, [loadHome]);
+
+  useEffect(() => { setHeroMediaLoaded(false); }, [heroImage, heroVideo]);
 
   // Sign-in fields
   const [siEmail, setSiEmail] = useState("");
@@ -132,7 +135,8 @@ function AuthPage() {
   );
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-noir-deep">
-      {heroReady && <AuthHeroMedia video={heroVideo} image={heroImage || DEFAULT_HERO_IMAGE}/>}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#32281f] via-[#101923] to-[#080b12]" />
+      {heroReady && <div className={`absolute inset-0 transition-opacity duration-700 ${heroMediaLoaded ? "opacity-100" : "opacity-0"}`}><AuthHeroMedia video={heroVideo} image={heroImage || DEFAULT_HERO_IMAGE} onReady={() => setHeroMediaLoaded(true)}/></div>}
       <div className="pointer-events-none absolute inset-0 bg-noir-deep/75"/>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-noir-deep/95 via-noir-deep/75 to-noir-deep/55"/>
       <header className="relative z-20 flex items-center justify-between gap-4 px-6 py-6 sm:px-10 lg:px-16">
@@ -153,14 +157,14 @@ function AuthPage() {
   );
 }
 
-function AuthHeroMedia({ video, image }: { video: string; image: string }) {
+function AuthHeroMedia({ video, image, onReady }: { video: string; image: string; onReady: () => void }) {
   const parsed = parseVideoUrl(video || "");
-  if (parsed.kind === "mp4" || parsed.kind === "webm") return <video src={parsed.embed || video} autoPlay muted loop playsInline preload="auto" poster={image || undefined} className="absolute inset-0 h-full w-full object-cover auth-media-kenburns" />;
+  if (parsed.kind === "mp4" || parsed.kind === "webm") return <video src={parsed.embed || video} autoPlay muted loop playsInline preload="metadata" poster={image || undefined} onLoadedData={onReady} onError={onReady} className="absolute inset-0 h-full w-full object-cover auth-media-kenburns" />;
   if ((parsed.kind === "youtube" || parsed.kind === "vimeo") && parsed.embed) {
     let src = parsed.embed;
     if (parsed.kind === "youtube") src += `${src.includes("?") ? "&" : "?"}autoplay=1&mute=1&controls=0&loop=1&playlist=${parsed.id || ""}&playsinline=1`;
     else src += `${src.includes("?") ? "&" : "?"}autoplay=1&muted=1&background=1&loop=1`;
-    return <iframe src={src} title="NOVAWORKS sign-in background" className="absolute -inset-[8%] h-[116%] w-[116%] pointer-events-none auth-media-kenburns" allow="autoplay; fullscreen; encrypted-media" />;
+    return <iframe src={src} onLoad={onReady} title="NOVAWORKS sign-in background" className="absolute -inset-[8%] h-[116%] w-[116%] pointer-events-none auth-media-kenburns" allow="autoplay; fullscreen; encrypted-media" />;
   }
   return <img
     src={image || DEFAULT_HERO_IMAGE}
@@ -168,9 +172,11 @@ function AuthHeroMedia({ video, image }: { video: string; image: string }) {
     loading="eager"
     decoding="async"
     fetchPriority="high"
+    onLoad={onReady}
     onError={(e) => {
       const el = e.currentTarget;
       if (el.src !== DEFAULT_HERO_IMAGE) el.src = DEFAULT_HERO_IMAGE;
+      else onReady();
     }}
     className="absolute inset-0 h-full w-full object-cover auth-media-kenburns"
   />;
