@@ -13,8 +13,12 @@ export const requestSaveVerification=createServerFn({method:"POST"}).middleware(
  .handler(async({data,context})=>{
    if(!permitted.has(data.action))throw new Error("Unsupported save action");
    if(!context.roles.some((r:string)=>["it","admin"].includes(r)))throw new Error("Not authorized to request this save");
+   const {queryRows}=await import("./mysql.server");
+   const grantKey=await hash(context.token);
+   const active=await queryRows<any>("SELECT 1 FROM save_verification_grants WHERE user_id=? AND session_hash=? AND expires_at>UTC_TIMESTAMP() LIMIT 1",[context.userId,grantKey]);
+   if(active.length)return {challenge_id:"",expires_in_seconds:0,verified:true};
    if(!process.env.RESEND_API_KEY)throw new Error("Email verification delivery is not configured");
-   const {withTransaction,queryRows}=await import("./mysql.server");
+   const {withTransaction}=await import("./mysql.server");
    const {makeOtp}=await import("./security.server");
    const {uuid}=await import("./db-utils.server");
    const {sendMail}=await import("./mailer.server");
@@ -29,9 +33,12 @@ export const requestSaveVerification=createServerFn({method:"POST"}).middleware(
    });
    try{await sendMail(user.email,"NOVAWORKS — confirm changes",`<p>Your one-time verification code is <strong>${code}</strong>.</p><p>It expires in 5 minutes. Only enter it for a change you initiated.</p>`);}
    catch(error){await queryRows<any>("DELETE FROM save_verification_challenges WHERE id=? AND user_id=?",[id,context.userId]);throw error;}
-   return {challenge_id:id,expires_in_seconds:300};
+   return {challenge_id:id,expires_in_seconds:300,verified:false};
  });
-export async function consumeSaveVerification(conn:PoolConnection,userId:string,action:string,payload:any,challengeId:string,code:string){
+export async function consumeSaveVerification(conn:PoolConnection,userId:string,action:string,payload:any,challengeId:string,code:string,sessionToken:string){
+ const sessionHash=await hash(sessionToken);
+ const [grants]:any=await conn.execute("SELECT 1 FROM save_verification_grants WHERE user_id=? AND session_hash=? AND expires_at>UTC_TIMESTAMP() LIMIT 1",[userId,sessionHash]);
+ if(grants.length)return;
  if(!challengeId||!/^\d{6}$/.test(code||""))throw new Error("Email verification required before saving");
  const [found]:any=await conn.execute(`SELECT *, (expires_at>UTC_TIMESTAMP()) AS valid_now FROM save_verification_challenges
  WHERE id=? AND user_id=? AND action_key=? FOR UPDATE`,[challengeId,userId,action]);
@@ -44,4 +51,5 @@ export async function consumeSaveVerification(conn:PoolConnection,userId:string,
    throw new Error("Incorrect verification code");
  }
  await conn.execute("UPDATE save_verification_challenges SET consumed_at=UTC_TIMESTAMP(),otp_hash=REPEAT('0',64) WHERE id=? AND consumed_at IS NULL",[r.id]);
+ await conn.execute("INSERT INTO save_verification_grants(user_id,session_hash,expires_at) VALUES(?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 15 MINUTE)) ON DUPLICATE KEY UPDATE expires_at=VALUES(expires_at)",[userId,sessionHash]);
 }
