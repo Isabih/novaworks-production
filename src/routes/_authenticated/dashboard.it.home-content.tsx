@@ -45,6 +45,7 @@ function Page() {
   const [allProps, setAllProps] = useState<Array<{ id: string; title: string; city: string | null; district: string | null; cover: string | null; status: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState("");
   const [pendingSave, setPendingSave] = useState<{payload: any; challengeId: string; cleanSlides: HeroSlide[]} | null>(null);
 
   useEffect(() => {
@@ -58,6 +59,7 @@ function Page() {
         setAuthHero(d.auth_hero_image_url ?? "");
         setAuthVideo(d.auth_hero_video_url ?? "");
         setAllProps((props as any[]) ?? []);
+        setSavedSnapshot(JSON.stringify({hero_slides:d.hero_slides,category_images:d.category_images,hero_story_video_url:d.hero_story_video_url,hero_video_bg_url:d.hero_video_bg_url ?? "",featured_property_ids:d.featured_property_ids ?? [],auth_hero_image_url:d.auth_hero_image_url ?? "",auth_hero_video_url:d.auth_hero_video_url ?? ""}));
       })
       .finally(() => setLoading(false));
   }, [load, loadProps]);
@@ -90,7 +92,9 @@ function Page() {
     setSaving(true);
     try {
       const payload={ hero_slides: cleanSlides, category_images: cats, hero_story_video_url: video, hero_video_bg_url: bg || "", featured_property_ids: featuredIds, auth_hero_image_url: authHero || "", auth_hero_video_url: authVideo || "" };
+      if(JSON.stringify(payload)===savedSnapshot)return;
       const challenge=await requestOtp({data:{action:"HOME_CONTENT_UPDATE",payload}});
+      if(challenge.verified){await save({data:{...payload,verification:{challenge_id:"",code:""}}});setSlides(cleanSlides);setSavedSnapshot(JSON.stringify(payload));toast.success("Homepage content saved");return;}
       setPendingSave({payload,challengeId:challenge.challenge_id,cleanSlides});
     } catch (e: any) {
       const msg = typeof e?.message === "string" ? e.message : "Failed to save";
@@ -113,6 +117,7 @@ function Page() {
     if (!pendingSave) return;
     await save({data:{...pendingSave.payload,verification:{challenge_id:pendingSave.challengeId,code}}});
     setSlides(pendingSave.cleanSlides);
+    setSavedSnapshot(JSON.stringify(pendingSave.payload));
     setPendingSave(null);
     toast.success("Homepage content saved");
   };
