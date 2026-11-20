@@ -9,6 +9,7 @@ import { getHomeContent, updateHomeContent, type HeroSlide } from "@/lib/home-co
 import { listPropertiesForPicker } from "@/lib/property-of-day.functions";
 import { CATEGORY_META, type PropertyCategory } from "@/lib/properties";
 import { toast } from "sonner";
+import { SaveVerificationModal } from "@/components/auth/SaveVerificationModal";
 import { MediaInput } from "@/components/dashboard/MediaInput";
 import { VideoUrlInput, parseVideoUrl } from "@/components/dashboard/VideoUrlInput";
 
@@ -44,6 +45,7 @@ function Page() {
   const [allProps, setAllProps] = useState<Array<{ id: string; title: string; city: string | null; district: string | null; cover: string | null; status: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pendingSave, setPendingSave] = useState<{payload: any; challengeId: string; cleanSlides: HeroSlide[]} | null>(null);
 
   useEffect(() => {
     Promise.all([load(), loadProps().catch(() => [])])
@@ -89,11 +91,7 @@ function Page() {
     try {
       const payload={ hero_slides: cleanSlides, category_images: cats, hero_story_video_url: video, hero_video_bg_url: bg || "", featured_property_ids: featuredIds, auth_hero_image_url: authHero || "", auth_hero_video_url: authVideo || "" };
       const challenge=await requestOtp({data:{action:"HOME_CONTENT_UPDATE",payload}});
-      const code=window.prompt("Check your account email for a six-digit code. Enter it to approve these exact homepage changes:");
-      if(!code){toast.message("Save cancelled — no changes applied");return;}
-      await save({data:{...payload,verification:{challenge_id:challenge.challenge_id,code:code.trim()}}});
-      setSlides(cleanSlides);
-      toast.success("Homepage content saved");
+      setPendingSave({payload,challengeId:challenge.challenge_id,cleanSlides});
     } catch (e: any) {
       const msg = typeof e?.message === "string" ? e.message : "Failed to save";
       try {
@@ -109,6 +107,19 @@ function Page() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const verifyPendingSave = async (code: string) => {
+    if (!pendingSave) return;
+    await save({data:{...pendingSave.payload,verification:{challenge_id:pendingSave.challengeId,code}}});
+    setSlides(pendingSave.cleanSlides);
+    setPendingSave(null);
+    toast.success("Homepage content saved");
+  };
+  const resendPendingSave = async () => {
+    if (!pendingSave) return;
+    const challenge = await requestOtp({data:{action:"HOME_CONTENT_UPDATE",payload:pendingSave.payload}});
+    setPendingSave(p => p ? {...p,challengeId:challenge.challenge_id} : null);
   };
 
   const toggleFeatured = (id: string) =>
@@ -257,6 +268,7 @@ function Page() {
           </div>
         </div>
       )}
+      {pendingSave && <SaveVerificationModal title="Verify homepage changes" onVerify={verifyPendingSave} onResend={resendPendingSave} onClose={() => setPendingSave(null)} />}
     </DashboardShell>
   );
 }
