@@ -20,6 +20,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { SaveVerificationModal } from "@/components/auth/SaveVerificationModal";
 
 export const Route = createFileRoute("/_authenticated/dashboard/admin/contact-edit")({
   head: () => ({ meta: [{ title: "Edit Who We Are & Contact — NOVAWORKS" }] }),
@@ -40,6 +41,7 @@ function ContactEditPage() {
   const [original, setOriginal] = useState<string>("");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingSave, setPendingSave] = useState<{payload: ContactContent; challengeId: string} | null>(null);
   const [preview, setPreview] = useState(true);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
   const [pendingRevert, setPendingRevert] = useState(false);
@@ -131,13 +133,22 @@ function ContactEditPage() {
     setSaving(true);
     try {
       const challenge = await requestOtp({data:{action:"CONTACT_CONTENT_UPDATE",payload:content}});
-      const code = window.prompt("Check your account email for a six-digit code to approve these contact changes:");
-      if (!code) { toast.message("Save cancelled — no changes applied"); return; }
-      await save({ data: {...content, verification:{challenge_id:challenge.challenge_id,code:code.trim()}} });
-      setOriginal(JSON.stringify(content));
-      toast.success("Who We Are & Contact updated");
+      setPendingSave({payload: content, challengeId: challenge.challenge_id});
     } catch (e: any) { toast.error(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
+  };
+
+  const verifyPendingSave = async (code: string) => {
+    if (!pendingSave) return;
+    await save({data:{...pendingSave.payload,verification:{challenge_id:pendingSave.challengeId,code}}});
+    setOriginal(JSON.stringify(pendingSave.payload));
+    setPendingSave(null);
+    toast.success("Who We Are & Contact updated");
+  };
+  const resendPendingSave = async () => {
+    if (!pendingSave) return;
+    const challenge = await requestOtp({data:{action:"CONTACT_CONTENT_UPDATE",payload:pendingSave.payload}});
+    setPendingSave(p => p ? {...p,challengeId:challenge.challenge_id} : null);
   };
 
   return (
@@ -225,6 +236,7 @@ function ContactEditPage() {
         </button>
       </div>
 
+      {pendingSave && <SaveVerificationModal title="Verify contact changes" onVerify={verifyPendingSave} onResend={resendPendingSave} onClose={() => setPendingSave(null)} />}
       <AlertDialog open={pendingRemove !== null} onOpenChange={(o) => !o && setPendingRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
