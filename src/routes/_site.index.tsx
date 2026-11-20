@@ -79,7 +79,7 @@ function HomePage() {
   const [progress, setProgress] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [clearHero,setClearHero]=useState(false);
-  const { data: publicHome, isPending: homePending } = useQuery({
+  const { data: publicHome, isLoading: homePending } = useQuery({
     queryKey: ["public-home"],
     queryFn: async () => {
       const r = await fetch("/api/public/property-categories?bundle=home");
