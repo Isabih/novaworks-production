@@ -79,7 +79,7 @@ function HomePage() {
   const [progress, setProgress] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [clearHero,setClearHero]=useState(false);
-  const { data: publicHome } = useQuery({
+  const { data: publicHome, isPending: homePending } = useQuery({
     queryKey: ["public-home"],
     queryFn: async () => {
       const r = await fetch("/api/public/property-categories?bundle=home");
@@ -90,7 +90,8 @@ function HomePage() {
   });
   const home = publicHome?.home;
   const stats = publicHome?.stats;
-  const HERO_SLIDES = (home?.hero_slides && home.hero_slides.length > 0 ? home.hero_slides : FALLBACK_SLIDES) as ReadonlyArray<{ image: string; title: string; titleAccent: string; subtitle: string }>;
+  // Do not paint stock fallback photos while the database-backed homepage is still loading.
+  const HERO_SLIDES = (homePending ? [] : (home?.hero_slides && home.hero_slides.length > 0 ? home.hero_slides : FALLBACK_SLIDES)) as ReadonlyArray<{ image: string; title: string; titleAccent: string; subtitle: string }>;
   const categoryImages = home?.category_images ?? {};
   const nextSlide = useCallback(() => {
     setSlide((p) => (p + 1) % Math.max(HERO_SLIDES.length, 1));
