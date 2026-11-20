@@ -12,7 +12,7 @@ const hash=(s:string)=>createHash("sha256").update(s).digest("hex");
 const hmac=(s:string)=>createHmac("sha256",secret()).update(s).digest("hex");
 const canonical=(value:any):string=>JSON.stringify(value,(_key,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 const payloadHash=(action:string,payload:any)=>hash(action+":"+canonical(payload));
-const permitted=new Set(["HOME_CONTENT_UPDATE","APP_SETTINGS_UPDATE","UNIT_SAVE","UNIT_IMAGE_ADD","APARTMENTS_GENERATE","APARTMENT_STATUS"]);
+const permitted=new Set(["HOME_CONTENT_UPDATE","CONTACT_CONTENT_UPDATE","APP_SETTINGS_UPDATE","UNIT_SAVE","UNIT_IMAGE_ADD","APARTMENTS_GENERATE","APARTMENT_STATUS"]);
 export const requestSaveVerification=createServerFn({method:"POST"}).middleware([requireMysqlAuth])
  .validator((d:{action:string;payload:any})=>d)
  .handler(async({data,context})=>{
