@@ -88,7 +88,31 @@ function HomePage() {
       return r.json() as Promise<{ home: any; featured: FeaturedProperty[]; pod: any | null; stats?: {properties:number;available_units:number;customers:number;locations:number}|null }>;
     },
     staleTime: 60_000,
+    initialData: () => {
+      if (typeof window === "undefined") return undefined;
+      try {
+        const cached = sessionStorage.getItem("nw_public_home_bundle_v1");
+        if (!cached) return undefined;
+        const entry = JSON.parse(cached);
+        return Date.now() - entry.time < 60_000 ? entry.data : undefined;
+      } catch { return undefined; }
+    },
+    initialDataUpdatedAt: () => {
+      if (typeof window === "undefined") return undefined;
+      try {
+        const cached = sessionStorage.getItem("nw_public_home_bundle_v1");
+        return cached ? JSON.parse(cached).time : undefined;
+      } catch { return undefined; }
+    },
   });
+  useEffect(() => {
+    if (!publicHome) return;
+    try {
+      const time = Date.now();
+      sessionStorage.setItem("nw_public_home_bundle_v1", JSON.stringify({ time, data: publicHome }));
+      sessionStorage.setItem("nw_public_home_media_v1", JSON.stringify({ time, home: publicHome.home }));
+    } catch {}
+  }, [publicHome]);
   const home = publicHome?.home;
   const stats = publicHome?.stats;
   // Do not paint stock fallback photos while the database-backed homepage is still loading.
