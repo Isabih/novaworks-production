@@ -43,13 +43,14 @@ function AuthPage() {
   const [remember, setRemember] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
   const loadHome = useServerFn(getHomeContent);
-  const [heroImage, setHeroImage] = useState<string>(DEFAULT_HERO_IMAGE);
+  const [heroImage, setHeroImage] = useState<string>("");
+  const [heroReady, setHeroReady] = useState(false);
   const [heroVideo, setHeroVideo] = useState<string>("");
   useEffect(() => {
     loadHome().then((d) => {
       if (d?.auth_hero_image_url) setHeroImage(d.auth_hero_image_url);
       if (d?.auth_hero_video_url) setHeroVideo(d.auth_hero_video_url);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setHeroReady(true));
   }, [loadHome]);
 
   // Sign-in fields
@@ -131,7 +132,7 @@ function AuthPage() {
   );
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-noir-deep">
-      <AuthHeroMedia video={heroVideo} image={heroImage}/>
+      {heroReady && <AuthHeroMedia video={heroVideo} image={heroImage || DEFAULT_HERO_IMAGE}/>}
       <div className="pointer-events-none absolute inset-0 bg-noir-deep/75"/>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-noir-deep/95 via-noir-deep/75 to-noir-deep/55"/>
       <header className="relative z-20 flex items-center justify-between gap-4 px-6 py-6 sm:px-10 lg:px-16">
