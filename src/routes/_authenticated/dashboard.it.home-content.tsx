@@ -59,7 +59,7 @@ function Page() {
         setAuthHero(d.auth_hero_image_url ?? "");
         setAuthVideo(d.auth_hero_video_url ?? "");
         setAllProps((props as any[]) ?? []);
-        setSavedSnapshot(JSON.stringify({hero_slides:d.hero_slides,category_images:d.category_images,hero_story_video_url:d.hero_story_video_url,hero_video_bg_url:d.hero_video_bg_url ?? "",featured_property_ids:d.featured_property_ids ?? [],auth_hero_image_url:d.auth_hero_image_url ?? "",auth_hero_video_url:d.auth_hero_video_url ?? ""}));
+        setSavedSnapshot(JSON.stringify({hero_slides:d.hero_slides.map((slide:HeroSlide)=>({...slide,image:slide.image?.trim() ?? ""})).filter((slide:HeroSlide)=>slide.image.length>0),category_images:d.category_images,hero_story_video_url:d.hero_story_video_url,hero_video_bg_url:d.hero_video_bg_url ?? "",featured_property_ids:d.featured_property_ids ?? [],auth_hero_image_url:d.auth_hero_image_url ?? "",auth_hero_video_url:d.auth_hero_video_url ?? ""}));
       })
       .finally(() => setLoading(false));
   }, [load, loadProps]);
