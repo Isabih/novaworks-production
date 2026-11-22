@@ -1,5 +1,6 @@
 import { signR2Upload } from "./r2.functions";
 import { createClientOnlyFn } from "@tanstack/react-start";
+export type UploadProvider = "r2";
 export type UploadResult={url:string;path:string;provider:"r2"};
 
 const optimizeImageForUpload = createClientOnlyFn(
