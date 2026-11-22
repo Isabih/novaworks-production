@@ -15,8 +15,12 @@ export function verifyPassword(password: string, stored: string | null | undefin
   return actual.length === expectedBuf.length && timingSafeEqual(actual, expectedBuf);
 }
 
-export function validateStrongPassword(password: string) {
-  return password.length >= 9 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
+export function validateStrongPassword(password: string, fullName = "", email = "") {
+  const tokens = [fullName, email.split("@")[0]].flatMap(v => v.toLowerCase().split(/[^a-z0-9]+/)).filter(v => v.length >= 3);
+  return password.length >= 12 && /[A-Z]/.test(password) && /[a-z]/.test(password) &&
+    /\d/.test(password) && /[^A-Za-z0-9]/.test(password) &&
+    !tokens.some(t => password.toLowerCase().includes(t)) &&
+    !/(?:012|123|234|345|456|567|678|789|890|987|876|765|654|543|432|321|210)/.test(password);
 }
 
 export function makeToken(bytes = 32) { return randomBytes(bytes).toString("hex"); }
