@@ -29,7 +29,7 @@ const signUpSchema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(100),
   email: z.string().trim().email("Enter a valid email").max(255),
   phone: z.string().trim().min(7, "Enter a valid phone").max(20).optional().or(z.literal("")),
-  password: z.string().min(9, "At least 9 characters").max(128).regex(/[A-Z]/, "Include an uppercase letter").regex(/[a-z]/, "Include a lowercase letter").regex(/\d/, "Include a number").regex(/[^A-Za-z0-9]/, "Include a symbol"),
+  password: z.string().min(12, "At least 12 characters").max(128).regex(/[A-Z]/, "Include an uppercase letter").regex(/[a-z]/, "Include a lowercase letter").regex(/\d/, "Include a number").regex(/[^A-Za-z0-9]/, "Include a symbol"),
 });
 
 function AuthPage() {
@@ -160,6 +160,7 @@ function AuthPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null);
     const parsed = signUpSchema.safeParse({ full_name:suName,email:suEmail,phone:suPhone,password:suPassword });
+    if (!isStrongPassword(suPassword, suName, suEmail)) return setError("Choose a stronger password without your name, email or sequential numbers.");
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Invalid input");
     setSubmitting(true);
     try {
@@ -187,7 +188,7 @@ function AuthPage() {
         <Field label="Full name"><InputWithIcon icon={<UserIcon className="h-4 w-4"/>}><input required autoComplete="name" value={suName} onChange={e=>setSuName(e.target.value)} placeholder="Your full name" className="w-full bg-transparent outline-none text-sm text-white placeholder:text-white/40"/></InputWithIcon></Field>
         <Field label="Email address"><InputWithIcon icon={<Mail className="h-4 w-4"/>}><input required type="email" autoComplete="email" value={suEmail} onChange={e=>setSuEmail(e.target.value)} placeholder="name@example.com" className="w-full bg-transparent outline-none text-sm text-white placeholder:text-white/40"/></InputWithIcon></Field>
         <Field label="Phone (optional)"><InputWithIcon icon={<Phone className="h-4 w-4"/>}><input type="tel" autoComplete="tel" value={suPhone} onChange={e=>setSuPhone(e.target.value)} placeholder="+250 7XX XXX XXX" className="w-full bg-transparent outline-none text-sm text-white placeholder:text-white/40"/></InputWithIcon></Field>
-        <Field label="Password"><InputWithIcon icon={<Lock className="h-4 w-4"/>} tone={suPassword?(isStrongPassword(suPassword)?"success":"danger"):"normal"}><input type={showPassword?"text":"password"} required autoComplete="new-password" value={suPassword} onChange={e=>setSuPassword(e.target.value)} placeholder="9+ characters, upper, lower, number, symbol" className="w-full bg-transparent outline-none text-sm text-white placeholder:text-white/40"/><button type="button" aria-label={showPassword?"Hide password":"Show password"} onClick={()=>setShowPassword(v=>!v)} className="text-white/50 hover:text-white">{showPassword?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}</button></InputWithIcon><PasswordStrength password={suPassword}/></Field>
+        <Field label="Password"><InputWithIcon icon={<Lock className="h-4 w-4"/>} tone={suPassword?(isStrongPassword(suPassword,suName,suEmail)?"success":"danger"):"normal"}><input type={showPassword?"text":"password"} required autoComplete="new-password" value={suPassword} onChange={e=>setSuPassword(e.target.value)} placeholder="12+ characters, upper, lower, number, symbol" className="w-full bg-transparent outline-none text-sm text-white placeholder:text-white/40"/><button type="button" aria-label={showPassword?"Hide password":"Show password"} onClick={()=>setShowPassword(v=>!v)} className="text-white/50 hover:text-white">{showPassword?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}</button></InputWithIcon><PasswordStrength password={suPassword} fullName={suName} email={suEmail}/></Field>
         <button disabled={submitting} className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-gold-soft to-gold px-5 py-3.5 text-sm font-semibold uppercase tracking-[.12em] text-noir-deep disabled:opacity-60">{submitting?"Creating account…":<>Create account <ArrowRight className="h-4 w-4"/></>}</button>
         <p className="text-xs text-white/50">By creating an account you agree to our terms and privacy policy. A six-digit code will be emailed to verify your address.</p>
       </form>}
