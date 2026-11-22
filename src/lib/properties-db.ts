@@ -3,7 +3,7 @@ export interface DbProperty{id:string;show_price?:number|boolean;owner_id:string
 export interface DbPropertyImage{id:string;property_id:string;url:string;storage_path:string|null;position:number;is_cover:boolean;section:string}
 export const IMAGE_SECTIONS=[{value:"main",label:"Main / Cover"},{value:"kitchen",label:"Kitchen"},{value:"living_room",label:"Living Room"},{value:"bedroom",label:"Bedroom"},{value:"bathroom",label:"Bathroom"},{value:"gym",label:"Gym"},{value:"other",label:"Other"}] as const;export type ImageSection=typeof IMAGE_SECTIONS[number]["value"];export const SECTION_ORDER:ImageSection[]=["main","kitchen","living_room","bedroom","bathroom","gym","other"];
 export function slugify(input:string){return input.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)+"-"+Math.random().toString(36).slice(2,7)}
-function auth(){const t=localStorage.getItem("novaworks_session");return t?{Authorization:`Bearer ${t}`}:{}}
+function auth(): Record<string,string>{const t=localStorage.getItem("novaworks_session");return t?{Authorization:`Bearer ${t}`}:{}}
 export async function fetchMyProperties(){const r=await fetch('/api/properties/manage',{headers:auth()});if(!r.ok)throw new Error((await r.json()).error||'Failed');return r.json()}
 export const fetchAllProperties=fetchMyProperties;
 export async function uploadPropertyImage(userId:string,file:File){const r=await uploadPropertyMedia(userId,file,'images');return{url:r.url,path:r.path}}
