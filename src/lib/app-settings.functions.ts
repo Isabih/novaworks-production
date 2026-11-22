@@ -14,7 +14,7 @@ export const updateAppSettings=createServerFn({method:"POST"}).middleware([requi
  const keys=Object.keys(payload).filter(k=>allowed.includes(k));
  if(!keys.length)throw new Error("No valid changes supplied");
  await withTransaction(async conn=>{
-  await consumeSaveVerification(conn,context.userId,"APP_SETTINGS_UPDATE",payload,verification.challenge_id,verification.code,context.token);
+  await consumeSaveVerification(conn,context.userId,"APP_SETTINGS_UPDATE",payload,verification.challenge_id,verification.code,context.token ?? "");
   await conn.execute(`UPDATE app_settings SET ${keys.map(k=>`${k}=?`).join(",")},updated_by=? WHERE id=1`,[...keys.map(k=>payload[k]),context.userId]);
   await conn.execute("INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,new_values) VALUES(?,'SETTINGS_UPDATED','app_settings','1',?)",
     [context.userId,JSON.stringify({changed_fields:keys})]);
