@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Home, Key, Building2, ShoppingBag, ArrowRight } from "lucide-react";
+import { ProgressiveImage } from "@/components/site/ProgressiveImage";
 
 export const Route = createFileRoute("/_site/services")({
   head: () => ({
@@ -21,8 +22,8 @@ const SERVICES = [
 function ServicesPage() {
   return (
     <div>
-      <section className="bg-noir-deep text-white py-24">
-        <div className="container-luxe text-center max-w-3xl mx-auto">
+      <section className="relative bg-noir-deep text-white py-24 overflow-hidden"><div className="absolute inset-0 opacity-20"><ProgressiveImage src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1600&q=75" alt="" priority width={1600} height={900} sizes="100vw" className="w-full h-full object-cover" containerClassName="w-full h-full"/></div>
+        <div className="container-luxe relative text-center max-w-3xl mx-auto">
           <div className="text-xs uppercase tracking-[0.2em] text-gold">What We Do</div>
           <h1 className="mt-4 font-display text-5xl md:text-6xl">Manage. Rent. Sell. Buy.</h1>
           <p className="mt-4 text-white/60">Four pillars, one promise — exceptional real estate, handled with discretion.</p>
