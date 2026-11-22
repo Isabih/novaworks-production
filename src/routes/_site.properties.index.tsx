@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal, LayoutGrid, List, X, Crown, Building2, Castl
 import { CATEGORY_META, type Property, type PropertyCategory } from "@/lib/properties";
 import { fetchActiveProperties } from "@/lib/properties-public";
 import { PropertyCard } from "@/components/site/PropertyCard";
+import { ProgressiveImage } from "@/components/site/ProgressiveImage";
 
 type PropSearch = { category?: PropertyCategory; listing?: "sale" | "rent"; status?: "available" | "sold"; city?: string; query?: string };
 
@@ -67,7 +68,7 @@ function PropertiesPage() {
     <div>
       {/* Page hero */}
       <section className="bg-noir-deep text-white pt-20 pb-28 relative overflow-hidden">
-        {dbProps[0]?.image && <img src={dbProps[0].image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-30"/>}
+        <div className="absolute inset-0 opacity-30"><ProgressiveImage src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=75" alt="" priority width={1600} height={900} sizes="100vw" className="h-full w-full object-cover" containerClassName="h-full w-full"/></div>
         <div className="absolute inset-0 bg-gradient-to-r from-noir-deep via-noir-deep/90 to-noir-deep/60"/>
         <div className="container-luxe relative">
           <div className="text-xs text-white/50 mb-6">
