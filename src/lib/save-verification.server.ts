@@ -14,7 +14,7 @@ export const requestSaveVerification=createServerFn({method:"POST"}).middleware(
    if(!permitted.has(data.action))throw new Error("Unsupported save action");
    if(!context.roles.some((r:string)=>["it","admin"].includes(r)))throw new Error("Not authorized to request this save");
    const {queryRows}=await import("./mysql.server");
-   const grantKey=await hash(context.token);
+   const grantKey=await hash(context.token ?? "");
    const active=await queryRows<any>("SELECT 1 FROM save_verification_grants WHERE user_id=? AND session_hash=? AND expires_at>UTC_TIMESTAMP() LIMIT 1",[context.userId,grantKey]);
    if(active.length)return {challenge_id:"",expires_in_seconds:0,verified:true};
    if(!process.env.RESEND_API_KEY)throw new Error("Email verification delivery is not configured");
