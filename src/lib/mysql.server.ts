@@ -24,5 +24,5 @@ export async function getDb(): Promise<Pool> {
   try { return await poolPromise; } catch (error) { poolPromise=null; throw error; }
 }
 
-export async function queryRows<T extends RowDataPacket[]>(sql:string, params:unknown[]=[]):Promise<T>{ const db=await getDb(); const [rows]=await db.query<T>(sql,params); return rows; }
+export async function queryRows<T extends RowDataPacket[]>(sql:string, params:unknown[]=[]):Promise<T>{ const db=await getDb(); const [rows]=await db.execute<T>(sql,params as any[]); return rows; }
 export async function withTransaction<T>(fn:(conn:PoolConnection)=>Promise<T>):Promise<T>{ const db=await getDb(); const conn=await db.getConnection(); try{await conn.beginTransaction();const result=await fn(conn);await conn.commit();return result}catch(error){await conn.rollback();throw error}finally{conn.release()} }
