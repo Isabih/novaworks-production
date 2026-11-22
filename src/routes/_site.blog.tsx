@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Calendar, ArrowRight } from "lucide-react";
+import { ProgressiveImage } from "@/components/site/ProgressiveImage";
 
 export const Route = createFileRoute("/_site/blog")({
   head: () => ({
@@ -23,8 +24,8 @@ const POSTS = [
 function BlogPage() {
   return (
     <div>
-      <section className="bg-noir-deep text-white py-20">
-        <div className="container-luxe max-w-3xl">
+      <section className="relative bg-noir-deep text-white py-24 overflow-hidden"><div className="absolute inset-0 opacity-20"><ProgressiveImage src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=75" alt="" priority width={1600} height={900} sizes="100vw" className="w-full h-full object-cover" containerClassName="w-full h-full"/></div>
+        <div className="container-luxe relative max-w-3xl">
           <div className="text-xs uppercase tracking-[0.2em] text-gold">Insights</div>
           <h1 className="mt-4 font-display text-5xl md:text-6xl">The NOVAWORKS Journal.</h1>
           <p className="mt-4 text-white/60">Market intelligence, design dispatches and neighbourhood notes.</p>
