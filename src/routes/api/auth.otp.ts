@@ -37,5 +37,22 @@ export const Route=createFileRoute("/api/auth/otp")({server:{handlers:{
   await queryRows<any>(`DELETE FROM email_verification_codes WHERE user_id=? AND id<>? AND purpose='account_verify'`,[user.id,id]);
   return Response.json({ok:true},{headers:noStore});
  },
- PUT:async({request})=>{const b=await request.json() as any;const email=String(b.email||"").trim().toLowerCase();const rows=await queryRows<(RowDataPacket&any)[]>(`SELECT ev.user_id FROM email_verification_codes ev WHERE LOWER(ev.email)=? AND ev.code=? AND ev.expires_at>UTC_TIMESTAMP() ORDER BY ev.created_at DESC LIMIT 1`,[email,String(b.code||"")]);if(!rows[0])return Response.json({error:"Invalid or expired verification code"},{status:400});await queryRows<any>(`UPDATE users SET email_verified_at=COALESCE(email_verified_at,UTC_TIMESTAMP()) WHERE id=?`,[rows[0].user_id]);await queryRows<any>(`DELETE FROM email_verification_codes WHERE user_id=?`,[rows[0].user_id]);const token=await createSession(rows[0].user_id,false);return Response.json({token});}
+ PUT:async({request})=>{
+  const noStore={"Cache-Control":"no-store"};
+  const b=await request.json() as any;
+  const email=String(b.email||"").trim().toLowerCase();
+  const code=String(b.code||"");
+  if(!/^\d{6}$/.test(code)) return Response.json({error:"Invalid or expired verification code"},{status:400,headers:noStore});
+  const rows=await queryRows<(RowDataPacket&any)[]>(`SELECT id,user_id,code,attempts FROM email_verification_codes WHERE LOWER(email)=? AND purpose='account_verify' AND expires_at>UTC_TIMESTAMP() ORDER BY created_at DESC LIMIT 1`,[email]);
+  const entry=rows[0];
+  if(!entry || Number(entry.attempts)>=5) return Response.json({error:"Invalid or expired verification code"},{status:400,headers:noStore});
+  if(entry.code!==code){
+    await queryRows<any>(`UPDATE email_verification_codes SET attempts=attempts+1 WHERE id=? AND attempts<5`,[entry.id]);
+    return Response.json({error:"Invalid or expired verification code"},{status:400,headers:noStore});
+  }
+  await queryRows<any>(`UPDATE users SET email_verified_at=COALESCE(email_verified_at,UTC_TIMESTAMP()) WHERE id=?`,[entry.user_id]);
+  await queryRows<any>(`DELETE FROM email_verification_codes WHERE user_id=? AND purpose='account_verify'`,[entry.user_id]);
+  const token=await createSession(entry.user_id,false);
+  return Response.json({token},{headers:noStore});
+ }
 }}});
