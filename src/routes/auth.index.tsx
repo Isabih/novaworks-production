@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { Eye, EyeOff, Mail, Lock, User as UserIcon, ArrowRight, Phone, Home } from "lucide-react";
 import { useAuth, dashboardPathFor } from "@/lib/use-auth";
@@ -45,6 +45,50 @@ function AuthPage() {
   const [heroReady, setHeroReady] = useState(false);
   const [heroMediaLoaded, setHeroMediaLoaded] = useState(false);
   const [heroVideo, setHeroVideo] = useState<string>("");
+  const phrases = ["Find your perfect address.", "Discover exceptional living.", "Make every move count.", "Welcome to NOVAWORKS."];
+  const [typedText, setTypedText] = useState("");
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const [idleSeconds, setIdleSeconds] = useState(15);
+  const lastActivity = useRef(0);
+  const idleRedirecting = useRef(false);
+  const authBusy = submitting || Boolean(verifyEmail);
+
+  useEffect(() => {
+    const phrase = phrases[phraseIndex];
+    const delay = deleting ? 48 : typedText.length === phrase.length ? 1800 : 88;
+    const timeout = window.setTimeout(() => {
+      if (!deleting && typedText.length === phrase.length) { setDeleting(true); return; }
+      if (deleting && typedText.length === 0) { setDeleting(false); setPhraseIndex(i => (i + 1) % phrases.length); return; }
+      setTypedText(phrase.slice(0, typedText.length + (deleting ? -1 : 1)));
+    }, delay);
+    return () => window.clearTimeout(timeout);
+  }, [typedText, phraseIndex, deleting]);
+
+  useEffect(() => {
+    lastActivity.current = Date.now();
+    const resetIdle = () => { lastActivity.current = Date.now(); setIdleSeconds(15); };
+    const events = ["pointerdown", "keydown", "touchstart", "input", "focusin", "scroll"] as const;
+    events.forEach(event => window.addEventListener(event, resetIdle, { passive: true }));
+    const interval = window.setInterval(() => {
+      if (authBusy || document.visibilityState === "hidden") {
+        lastActivity.current = Date.now();
+        setIdleSeconds(15);
+        return;
+      }
+      const remaining = Math.max(0, 15 - Math.floor((Date.now() - lastActivity.current) / 1000));
+      setIdleSeconds(remaining);
+      if (remaining === 0 && !idleRedirecting.current) {
+        idleRedirecting.current = true;
+        navigate({ to: "/" });
+      }
+    }, 200);
+    return () => {
+      events.forEach(event => window.removeEventListener(event, resetIdle));
+      window.clearInterval(interval);
+    };
+  }, [authBusy, navigate]);
+
   useEffect(() => {
     let active = true;
     const cacheKey = "nw_public_home_media_v1";
@@ -130,8 +174,8 @@ function AuthPage() {
   };
 
   const formCard = (
-    <div className="glass-dark w-full max-w-md rounded-3xl border border-white/30 bg-[#0b1523]/60 backdrop-blur-2xl p-7 sm:p-9 text-white ring-1 ring-white/15 shadow-[0_36px_110px_-25px_rgba(0,0,0,.95)]">
-      <span className="mb-4 inline-flex rounded-full border border-gold/50 bg-black/35 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.15em] text-gold">NOVAWORKS · Version 1.2.3 Enhanced</span><h1 className="font-display text-3xl">{mode==="signin"?"Welcome back":"Create your account"}</h1>
+    <div className="w-full max-w-md rounded-3xl border border-white/35 bg-[#182331]/45 backdrop-blur-xl p-7 sm:p-9 text-white ring-1 ring-white/10 shadow-[0_28px_90px_-30px_rgba(0,0,0,.75)] transition-shadow duration-500 hover:shadow-[0_32px_100px_-25px_rgba(0,0,0,.8)]">
+      <div className="mb-5 h-0.5 w-20 rounded-full bg-gradient-to-r from-gold via-gold-soft to-transparent"/><span className="mb-4 inline-flex rounded-full border border-gold/50 bg-black/35 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.15em] text-gold">NOVAWORKS · Version 1.2.3 Enhanced</span><h1 className="font-display text-3xl">{mode==="signin"?"Welcome back":"Create your account"}</h1>
       <p className="mt-2 text-sm text-white/65">{mode==="signin"?"Sign in to manage your properties, bookings and saved listings.":"Join NOVAWORKS to save listings, schedule visits, and manage your property journey."}</p>
       {error&&<div role="alert" className="mt-5 rounded-xl border border-rose-400/40 bg-rose-500/15 p-3 text-sm text-rose-100">{error}</div>}
       {mode==="signin"?<form onSubmit={handleSignIn} className="mt-7 space-y-4">
@@ -156,8 +200,8 @@ function AuthPage() {
     <div className="relative min-h-screen w-full overflow-hidden bg-noir-deep">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#32281f] via-[#101923] to-[#080b12]" />
       {heroReady && <div className={`absolute inset-0 transition-opacity duration-700 ${heroMediaLoaded ? "opacity-100" : "opacity-0"}`}><AuthHeroMedia video={heroVideo} image={heroImage || DEFAULT_HERO_IMAGE} onReady={() => setHeroMediaLoaded(true)}/></div>}
-      <div className="pointer-events-none absolute inset-0 bg-noir-deep/75"/>
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-noir-deep/95 via-noir-deep/75 to-noir-deep/55"/>
+      <div className="pointer-events-none absolute inset-0 bg-noir-deep/45"/>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-noir-deep/85 via-noir-deep/45 to-noir-deep/30"/>
       <header className="relative z-20 flex items-center justify-between gap-4 px-6 py-6 sm:px-10 lg:px-16">
         <Link to="/" className="inline-flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold text-noir-deep"><Home className="h-5 w-5"/></span><span className="leading-tight text-white"><span className="block font-display text-xl tracking-wide">NOVAWORKS</span><span className="block max-w-[240px] text-[9px] uppercase tracking-[.2em] text-white/55">Where Prime Property Meets Peace of Mind</span></span></Link>
         <Link to="/" className="glass hidden sm:inline-flex rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-[.15em] text-white hover:bg-white/15">Back to site</Link>
@@ -165,12 +209,19 @@ function AuthPage() {
       <main className="relative z-10 mx-auto grid max-w-[1400px] items-center gap-12 px-6 pb-16 pt-4 sm:px-10 lg:grid-cols-2 lg:px-16 lg:pt-10">
         <div className="hidden lg:block text-white">
           <span className="glass inline-flex rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[.22em] text-gold">Premium Real Estate</span>
-          <h2 className="mt-7 font-display text-5xl leading-[1.05] xl:text-6xl">Discover Your <span className="gold-text">Perfect</span><br/>Address</h2>
+          <h2 className="mt-7 font-display text-5xl leading-[1.05] xl:text-6xl">Your next chapter <span className="gold-text">starts here.</span></h2>
+          <div className="mt-5 min-h-[3.5rem] font-display text-2xl text-white/95" aria-label={phrases[phraseIndex]}><span>{typedText}</span><span aria-hidden="true" className="ml-0.5 inline-block h-6 w-[2px] translate-y-1 bg-gold animate-pulse"/></div>
           <p className="mt-6 max-w-md leading-relaxed text-white/70">Explore exceptional properties, manage your bookings and follow your property journey with NOVAWORKS — Kigali's premium real-estate platform.</p>
           <div className="mt-10 flex flex-wrap gap-7 text-sm text-white/70"><span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-gold"/>Verified listings</span><span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-gold"/>Secure account access</span></div>
         </div>
         <div className="flex justify-center lg:justify-end">{formCard}</div>
       </main>
+      {idleSeconds <= 5 && !authBusy && <div role="status" aria-live="polite" className="fixed bottom-5 left-1/2 z-50 w-[min(90vw,340px)] -translate-x-1/2 overflow-hidden rounded-2xl border border-gold/40 bg-[#101923]/90 p-4 text-center text-white shadow-2xl backdrop-blur-xl">
+        <div className="text-xs uppercase tracking-[.16em] text-gold">Returning home in</div>
+        <div key={idleSeconds} className="my-1 font-display text-4xl font-semibold tabular-nums motion-safe:animate-pulse">{idleSeconds}</div>
+        <div className="h-1 overflow-hidden rounded-full bg-white/15"><div className="h-full bg-gold transition-all duration-300" style={{width: idleSeconds * 20 + "%"}}/></div>
+        <button type="button" onClick={() => { lastActivity.current = Date.now(); setIdleSeconds(15); }} className="mt-3 text-xs font-semibold text-white/85 underline underline-offset-4 hover:text-gold">Stay on sign-in</button>
+      </div>}
       {verifyEmail&&<VerifyOtpModal email={verifyEmail} onClose={()=>setVerifyEmail(null)} onSuccess={()=>{setVerifyEmail(null);navigate({to:"/auth/welcome",search:{to:""}})}}/>}
     </div>
   );
