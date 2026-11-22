@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { TrendingUp, PieChart, ShieldCheck, Briefcase, ArrowRight } from "lucide-react";
+import { ProgressiveImage } from "@/components/site/ProgressiveImage";
 
 export const Route = createFileRoute("/_site/investors")({
   head: () => ({
@@ -16,7 +17,7 @@ function InvestorsPage() {
     <div>
       <section className="relative bg-noir-deep text-white py-24 overflow-hidden">
         <div className="absolute inset-0 opacity-20">
-          <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2000&q=80" className="w-full h-full object-cover" alt="" />
+          <ProgressiveImage src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=75" alt="" priority width={1600} height={900} sizes="100vw" className="w-full h-full object-cover" containerClassName="w-full h-full" />
         </div>
         <div className="container-luxe relative max-w-3xl">
           <div className="text-xs uppercase tracking-[0.2em] text-gold">For Investors</div>
