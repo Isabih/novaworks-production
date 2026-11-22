@@ -16,7 +16,7 @@ export const updateContactContent=createServerFn({method:"POST"}).middleware([re
   if(m.phone&&!/^\+?[0-9 ()-]{7,25}$/.test(m.phone))throw new Error("Invalid staff phone");
  }
  await withTransaction(async conn=>{
-  await consumeSaveVerification(conn,context.userId,"CONTACT_CONTENT_UPDATE",payload,verification.challenge_id,verification.code,context.token);
+  await consumeSaveVerification(conn,context.userId,"CONTACT_CONTENT_UPDATE",payload,verification.challenge_id,verification.code,context.token ?? "");
   await conn.execute("UPDATE app_settings SET contact_ceo=?,contact_team=?,contact_info=?,updated_by=? WHERE id=1",[JSON.stringify(payload.ceo),JSON.stringify(payload.team),JSON.stringify(payload.info),context.userId]);
   await conn.execute("INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id) VALUES(?,'CONTACT_CONTENT_UPDATED','app_settings','1')",[context.userId]);
  });
